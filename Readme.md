@@ -2,7 +2,7 @@
 
 ## Overview
 
-RDF_GPT_Tool is a sophisticated Python-based toolkit for interacting with RDF (Resource Description Framework) data and utilizing OpenAI's GPT models. It includes two primary components: `RDF_Tool.py` for graph operations and a GPT-powered question-answering module.
+RDF_GPT_Tool is a  Python-based toolkit for interacting with RDF (Resource Description Framework) data and utilizing OpenAI's GPT models. It includes two primary components: `RDF_Tool.py` for graph operations and a GPT-powered question-answering module.
 
 ### RDF_Tool.py
 
