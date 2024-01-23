@@ -1,0 +1,189 @@
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sc: <http://purl.org/science/owl/sciencecommons/> .
+
+sc:Datatype a rdfs:Class .
+
+sc:MLGoal a rdfs:Class .
+
+sc:Model a rdfs:Class .
+
+sc:Operation a rdfs:Class .
+
+sc:AudioData a sc:TemporalData .
+
+sc:BERT a sc:Transformer ;
+    sc:hasParameters sc:167360261 ;
+    sc:input sc:TextData ;
+    sc:mlgoal sc:NaturalLanguageUnderstanding,
+        sc:SentimentAnalysis ;
+    sc:output sc:Labels .
+
+sc:Cropping a sc:Operation ;
+    sc:input sc:BoundingBox,
+        sc:ImageData ;
+    sc:output sc:ImageData .
+
+sc:DETA a sc:Transformer ;
+    sc:hasParameters sc:48438489 ;
+    sc:input sc:ImageData ;
+    sc:mlgoal sc:ObjectDetection ;
+    sc:output sc:BoundingBox,
+        sc:Labels .
+
+sc:DETR a sc:Transformer ;
+    sc:hasParameters sc:41524768 ;
+    sc:input sc:ImageData ;
+    sc:mlgoal sc:ObjectDetection ;
+    sc:output sc:BoundingBox,
+        sc:Labels .
+
+sc:EEGData a sc:TemporalData .
+
+sc:FullyConnected a sc:Model ;
+    sc:input sc:Features ;
+    sc:mlgoal sc:Classification ;
+    sc:output sc:Labels .
+
+sc:IMUData a sc:TemporalData .
+
+sc:InceptionV4 a sc:Model ;
+    sc:hasParameters sc:42679816 ;
+    sc:input sc:ImageData ;
+    sc:mlgoal sc:ImageClassification ;
+    sc:output sc:Labels .
+
+sc:OneFormer a sc:Transformer ;
+    sc:hasParameters sc:218781179 ;
+    sc:input sc:ImageData ;
+    sc:mlgoal sc:ImageSegmentation ;
+    sc:output sc:Labels .
+
+sc:Open13 a sc:Model ;
+    sc:input sc:Spectrogram ;
+    sc:mlgoal sc:InformationEmbedding ;
+    sc:output sc:Features .
+
+sc:SAM a sc:Transformer ;
+    sc:hasParameters sc:93735472 ;
+    sc:input sc:ImageData ;
+    sc:mlgoal sc:ImageSegmentation ;
+    sc:output sc:Labels .
+
+sc:STFT a sc:Operation ;
+    sc:input sc:TemporalData ;
+    sc:output sc:Spectrogram .
+
+sc:TemporalConvolution a sc:Model ;
+    sc:input sc:TemporalData ;
+    sc:mlgoal sc:InformationEmbedding ;
+    sc:output sc:Features .
+
+sc:VIT a sc:Model ;
+    sc:hasParameters sc:86567656 ;
+    sc:input sc:ImageData ;
+    sc:mlgoal sc:ImageClassification ;
+    sc:output sc:Labels .
+
+sc:VideoData a sc:CompositeData ;
+    sc:TemporalSeq sc:ImageData ;
+    sc:is sc:SpatialData,
+        sc:TemporalData .
+
+sc:YOLO a sc:Model ;
+    sc:hasParameters sc:68229648 ;
+    sc:input sc:ImageData ;
+    sc:mlgoal sc:ObjectDetection ;
+    sc:output sc:BoundingBox,
+        sc:Labels .
+
+sc:YOLOS a sc:Transformer ;
+    sc:hasParameters sc:6488736 ;
+    sc:input sc:ImageData ;
+    sc:mlgoal sc:ObjectDetection ;
+    sc:output sc:BoundingBox,
+        sc:Labels .
+
+sc:distilbert a sc:Transformer ;
+    sc:hasParameters sc:135326979 ;
+    sc:input sc:TextData ;
+    sc:mlgoal sc:NaturalLanguageUnderstanding,
+        sc:SentimentAnalysis ;
+    sc:output sc:Labels .
+
+sc:135326979 a sc:numberOfParameters .
+
+sc:167360261 a sc:numberOfParameters .
+
+sc:218781179 a sc:numberOfParameters .
+
+sc:41524768 a sc:numberOfParameters .
+
+sc:42679816 a sc:numberOfParameters .
+
+sc:48438489 a sc:numberOfParameters .
+
+sc:6488736 a sc:numberOfParameters .
+
+sc:68229648 a sc:numberOfParameters .
+
+sc:86567656 a sc:numberOfParameters .
+
+sc:93735472 a sc:numberOfParameters .
+
+sc:SpectralDensity a sc:DiscreteData .
+
+sc:CompositeData a sc:Datatype .
+
+sc:ContinuousData a sc:Datatype .
+
+sc:ImageClassification a sc:Classification ;
+    sc:input sc:ImageData ;
+    sc:output sc:Labels .
+
+sc:ImageSegmentation a sc:Classification ;
+    sc:input sc:ImageData ;
+    sc:output sc:Labels .
+
+sc:InformationEmbedding a sc:MLGoal ;
+    sc:output sc:Features .
+
+sc:SpatialData a sc:ContinuousData .
+
+sc:Spectrogram a sc:CompositeData ;
+    sc:TemporalSeq sc:SpectralDensity ;
+    sc:islike sc:ImageData .
+
+sc:Classification a sc:MLGoal ;
+    sc:input sc:Features ;
+    sc:output sc:Labels .
+
+sc:NaturalLanguageUnderstanding a sc:MLGoal ;
+    sc:input sc:TextData ;
+    sc:output sc:Features .
+
+sc:SentimentAnalysis a sc:NaturalLanguageUnderstanding ;
+    sc:output sc:Labels .
+
+sc:TextData a sc:DiscreteData ;
+    sc:input sc:SentimentAnalysis .
+
+sc:ObjectDetection a sc:MLGoal ;
+    sc:input sc:ImageData ;
+    sc:output sc:BoundingBox .
+
+sc:DiscreteData a sc:Datatype .
+
+sc:BoundingBox a sc:DiscreteData .
+
+sc:Features a sc:DiscreteData .
+
+sc:TemporalData a sc:ContinuousData .
+
+sc:Transformer a sc:Model .
+
+sc:numberOfParameters a rdfs:Class .
+
+sc:ImageData a sc:SpatialData .
+
+sc:Labels a sc:DiscreteData .
+
