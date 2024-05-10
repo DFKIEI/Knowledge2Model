@@ -6,3 +6,8 @@ Pillow>=9.3.0
 opencv-python>=4.9.0.80
 transformers>=4.37.0
 networkx>=3.0
+openai~=1.26.0
+ultralytics
+optimum
+onnx
+timm
