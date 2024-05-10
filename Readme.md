@@ -49,3 +49,7 @@ if __name__ == '__main__':
     
 #### API Key
 An API key from OpenAI is required for the question-answering module. Set your API key in the code or as an environment variable.
+
+## Additional Technical Requirements
+
+Currently, models like BERT and DistilBERT are not supported for conversion into ONNX format. To run ml_model_provider_node.py, ModelONNXCodebase.py, rdfCode.py, and CustomGraph.ttl are required.
