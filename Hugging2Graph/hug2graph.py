@@ -20,11 +20,12 @@ models = {}
 
 # Fetch the models from Hugging Face Hub
 models_filter = ModelFilter(task="image-classification")
-models_filter = ModelFilter(id="yolov8m-painting-classification")
+#models_filter = ModelFilter(id="yolov8m-painting-classification")
 #print(list(api.list_models(filter=models_filter)))
 for model in list(api.list_models(filter=models_filter)):
     model_id = model.modelId
     downloads = model.downloads
+    print(model)
     if ~model.gated & downloads>0:
         print(model_id)
         card = ModelCard.load(model_id, ignore_metadata_errors=True)
