@@ -1,4 +1,6 @@
+12/06/24
 1. hugging api to KG
+    1.1 text to KG
 2. KG RAG, not graph database RAG
 3. How to get the code for building the model, transformers have the model loader
 4. specifics e.g. LLM have specific tokenizers
