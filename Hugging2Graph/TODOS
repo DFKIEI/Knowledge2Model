@@ -4,4 +4,4 @@
 2. KG RAG, not graph database RAG
 3. How to get the code for building the model, transformers have the model loader
 4. specifics e.g. LLM have specific tokenizers
-5. graph format, right now have rdflib
+5. graph format, right now have rdflib with ttl, no neo4j
