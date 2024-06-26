@@ -1,7 +1,16 @@
 12/06/24
-1. hugging api to KG
+1. hugging api to KG - Daniel and Bo
+    1.0 https://huggingface.co/docs/hub/api  json to dictionary
     1.1 text to KG
-2. KG RAG, not graph database RAG
+
+2. KG RAG, not graph database RAG - Lars and Stefan
+    2.0 try manual querry with more complex returns, more than a single node 
+    2.1 have LLM write the querry code, https://python.langchain.com/v0.1/docs/use_cases/graph/
+
+
+
 3. How to get the code for building the model, transformers have the model loader
+
 4. specifics e.g. LLM have specific tokenizers
-5. graph format, right now have rdflib with ttl, no neo4j
+
+5. graph format stay with rdflib with ttl, no neo4j

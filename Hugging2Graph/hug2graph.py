@@ -17,6 +17,13 @@ model_collections = ["transformers"]#, "bert", "roberta"]
 models = {}
 
 # maybe we need to create a root architectures
+import requests
+response = requests.get(
+  "https://huggingface.co/api/models",
+  params={"limit":5,"full":"True","config":"True"},
+  headers={}
+)
+print(response)
 
 # Fetch the models from Hugging Face Hub
 models_filter = ModelFilter(task="image-classification")
@@ -30,36 +37,38 @@ for model in list(api.list_models(filter=models_filter)):
         print(model_id)
         card = ModelCard.load(model_id, ignore_metadata_errors=True)
         #model_description = card.data
-        print(card)
+        #print(card)
+        #print(api.models(model_id))
         # Create a URI for the model
         model_uri = URIRef(kg_namespace + "model/" + model_id)
         
         # Add the model to the graph
-        graph.add((model_uri, URIRef("http://schema.org/name"), Literal(model_id)))
-        graph.add((model_uri, URIRef("http://schema.org/description"), Literal(str(card))))
+        #graph.add((model_uri, URIRef("http://schema.org/name"), Literal(model_id)))
+        #graph.add((model_uri, URIRef("http://schema.org/description"), Literal(str(card))))
         
         # Fetch the model's metadata
         model_metadata = api.model_info(model_id)
         print(model_metadata)
         # is the model derived from another architecture?
 
-        # Add the metadata to the graph
-        for key, value in model_metadata.items():
-            if key != "id" and key != "name":
-                graph.add((model_uri, URIRef(kg_namespace + "property/" + key), Literal(value)))
-        print(model_id)
+        # Add the metadata to the graph 
+        # not yet working
+#        for key, value in model_metadata.items():
+#            if key != "id" and key != "name":
+#                graph.add((model_uri, URIRef(kg_namespace + "property/" + key), Literal(value)))
+#        print(model_id)
 
         # Add the model to the dictionary
-        models[model_id] = {
-            "uri": str(model_uri),
-            "model_id": model_id,
-            "description": str(card),
-            "metadata": model_metadata
-        }
+#        models[model_id] = {
+#            "uri": str(model_uri),
+#            "model_id": model_id,
+#            "description": str(card),
+#            "metadata": model_metadata
+#        }
 
 # Save the graph to a file
-graph.serialize("huggingface_kg.ttl", format="turtle")
+#graph.serialize("huggingface_kg.ttl", format="turtle")
 
 # Save the models dictionary to a JSON file
-with open("models.json", "w") as f:
-    json.dump(models, f, indent=4)
+#with open("models.json", "w") as f:
+#    json.dump(models, f, indent=4)
