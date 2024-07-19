@@ -10,19 +10,6 @@ ml_goal_query = """
     WHERE { ?s sc:mlgoal ?o } 
     """
 
-
-def query_graph(query, graph):
-    q_res = graph.query(query)
-    res_set = set()
-    for row in q_res:
-        obj = None
-        if not row["o"] is None:
-            obj = row["o"].rsplit("/", 1)[1]
-        res_set.add(obj)
-
-    return list(res_set)
-
-
 def construct_schema(graph):
     query_classes = """
     SELECT DISTINCT ?class WHERE {
@@ -85,7 +72,46 @@ def construct_schema(graph):
     for p in updated_prop_list:
         final_schema += p + "\n"
 
-    return final_schema
+    return final_schema, prefix_list, namespaces_list
+
+
+clean_schema, prefix_list, namespaces_list = construct_schema(g)
+print(prefix_list)
+print(namespaces_list)
+
+
+def query_graph(query, graph):
+    q_res = graph.query(query)
+    res_set = set()
+    for row in q_res:
+        obj = None
+        if not row["o"] is None:
+            obj = row["o"].rsplit("/", 1)[1]
+        res_set.add(obj)
+
+    return list(res_set)
+
+
+def query_all_graphs(query, graph, prefixes, namespaces, show_prefix=True):
+    q_result = graph.query(query)
+    result_str = ""
+    for row in q_result:
+        print(row)
+        result_str += str(row)
+    res = result_str.replace("(rdflib.term.URIRef(", "").replace("'", "").replace("),)", ",")
+    res_list = res.split(",")
+    final_res = []
+    for res in res_list:
+        for name in namespaces:
+            if name in res:
+                if show_prefix:
+                    clean_name = res.replace(name, prefixes[namespaces.index(name)]+":")
+                else:
+                    clean_name = res.replace(name, "")
+                final_res.append(clean_name)
+                break
+
+    return list(set(final_res))
 
 
 def result_parser(input_str):
@@ -173,7 +199,7 @@ When creating a SPARQL query make sure to only use the node types and properties
 Do not use any node types and properties that are not explicitly provided.
 Include all necessary prefixes.
 Schema:
-{schema}""".format(schema=construct_schema(g))
+{schema}""".format(schema=clean_schema)
 
 suffix_template = """Note: Be as concise as possible.
 Do not include any explanations or apologies in your responses.
@@ -200,10 +226,15 @@ few_shot_prompt = FewShotPromptTemplate(
 
 chain = few_shot_prompt | llm | result_parser
 
-result = chain.invoke({'input': 'What are the machine learning goals in the KG?'})
-print(result)
-q_res = g.query(result)
-for row in q_res:
-    print(row)
-g_result = query_graph(result, g)  # -> doesn't work if o not select operator
+#result = chain.invoke({'input': 'What are the machine learning goals in the KG?'})
+#print(result)
+#q_res = g.query(result)
+#for row in q_res:
+#    print(row)
+a = """PREFIX sc: <http://purl.org/science/owl/sciencecommons/>
+SELECT ?o
+WHERE {
+  ?s sc:mlgoal ?o 
+}"""
+g_result = query_all_graphs(a, g, prefix_list, namespaces_list)  # -> doesn't work if o not select operator
 print(g_result)
