@@ -13,7 +13,7 @@ tags = json.loads(response.content)["pipeline_tag"]
 print(tags)
 
 
-conn = sqlite3.connect('huggingface_data.db')
+conn = sqlite3.connect('huggingface.db')
 cursor = conn.cursor()
 
 
@@ -21,9 +21,9 @@ cursor.execute('''
 CREATE TABLE IF NOT EXISTS Models (
     model_id TEXT PRIMARY KEY,
     model_name TEXT,
-    tag TEXT,
-    customTags TEXT,
-    subType TEXT,
+    problem TEXT,
+    tags TEXT,
+    coverTag TEXT,
     library TEXT,
     downloads INTEGER,
     likes INTEGER,
@@ -33,14 +33,14 @@ CREATE TABLE IF NOT EXISTS Models (
 conn.commit()
 
 for tag in tags:
-    tag_name = tag["id"]
-    subType = tag["subType"]
+    problem = tag["id"]
+    coverTag = tag["subType"]
 
-    print(tag_name)
+    print(problem)
     
     response = requests.get(
         "https://huggingface.co/api/models",
-        params={"limit": "unlimited", "full": "True", "config": "True", "sort": "downloads", "filter": tag_name},
+        params={"limit": "unlimited", "full": "True", "config": "True", "sort": "downloads", "filter": problem},
         headers={}
     )
     data = json.loads(response.content)
@@ -49,16 +49,16 @@ for tag in tags:
         try:
             model_id = model['_id']
             model_name = model['id']
-            customTags = json.dumps(model['tags'])
+            tags = json.dumps(model['tags'])
             library = model["library_name"]
             downloads = model['downloads']
             likes = model['downloads']
             modified = model['lastModified']
         
             cursor.execute('''
-                INSERT INTO Models (model_id, model_name, tag, customTags, subType, library, downloads, likes, lastModified)
+                INSERT INTO Models (model_id, model_name, problem, tags, coverTag, library, downloads, likes, lastModified)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (model_id, model_name, tag_name, customTags, subType, library, downloads, likes, modified))
+            ''', (model_id, model_name, problem, tags, coverTag, library, downloads, likes, modified))
         except sqlite3.IntegrityError:
             # print(model)
             pass
