@@ -18,4 +18,10 @@ GPT based tool to interact have conversation with LLm support by the Knowledge G
 Visualizer and Editor of `.ttl`files (large graphs will result in out-of-memory error)
 
 
+## Installation
+
+1. Ensure Python is installed on your system.
+2. Clone the repository or download the source code.
+3. Install required dependencies listed in `requirements.txt`.
+
 ### For more details check the Readme of the specific folders.
