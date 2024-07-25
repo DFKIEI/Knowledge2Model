@@ -1,0 +1,259 @@
+@prefix conn: <http://example.org/conn/> .
+@prefix library: <http://example.org/library/> .
+@prefix problem: <http://example.org/problem/> .
+@prefix tag: <http://example.org/tag/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.org/model/ActivationAI/distilbert-base-uncased-finetuned-emotion> conn:downloads 2926095 ;
+    conn:hasCoverTag tag:nlp ;
+    conn:hasProblem problem:text-classification ;
+    conn:hasTag tag:autotrain_compatible,
+        tag:distilbert,
+        tag:endpoints_compatible,
+        tag:generated_from_trainer,
+        tag:license%3Aapache-2.0,
+        tag:model-index,
+        tag:pytorch,
+        tag:region%3Aus,
+        tag:tensorboard,
+        tag:text-classification,
+        tag:transformers ;
+    conn:lastModified "2022-03-02T03:40:08+00:00"^^xsd:dateTime ;
+    conn:likes 2926095 ;
+    conn:model_id "621ffdc036468d709f1744de"^^xsd:string ;
+    conn:model_name "ActivationAI/distilbert-base-uncased-finetuned-emotion"^^xsd:string ;
+    conn:type conn:Model ;
+    conn:usesLibrary library:transformers .
+
+<http://example.org/model/Necent/distilbert-base-uncased-detected-jailbreak> conn:downloads 4410904 ;
+    conn:hasCoverTag tag:nlp ;
+    conn:hasProblem problem:text-classification ;
+    conn:hasTag tag:autotrain_compatible,
+        tag:distilbert,
+        tag:endpoints_compatible,
+        tag:region%3Aus,
+        tag:safetensors,
+        tag:text-classification,
+        tag:transformers ;
+    conn:lastModified "2024-04-18T09:51:24+00:00"^^xsd:dateTime ;
+    conn:likes 4410904 ;
+    conn:model_id "661fd239da0148fbd982383e"^^xsd:string ;
+    conn:model_name "Necent/distilbert-base-uncased-detected-jailbreak"^^xsd:string ;
+    conn:type conn:Model ;
+    conn:usesLibrary library:transformers .
+
+<http://example.org/model/SamLowe/roberta-base-go_emotions> conn:downloads 2855930 ;
+    conn:hasCoverTag tag:nlp ;
+    conn:hasProblem problem:text-classification ;
+    conn:hasTag tag:autotrain_compatible,
+        tag:endpoints_compatible,
+        tag:license%3Amit,
+        tag:pytorch,
+        tag:region%3Aus,
+        tag:roberta,
+        tag:safetensors,
+        tag:text-classification,
+        tag:transformers ;
+    conn:lastModified "2023-10-04T10:00:58+00:00"^^xsd:dateTime ;
+    conn:likes 2855930 ;
+    conn:model_id "632322d59e488d65bf2f4742"^^xsd:string ;
+    conn:model_name "SamLowe/roberta-base-go_emotions"^^xsd:string ;
+    conn:type conn:Model ;
+    conn:usesLibrary library:transformers .
+
+<http://example.org/model/avichr/heBERT_sentiment_analysis> conn:downloads 3710303 ;
+    conn:hasCoverTag tag:nlp ;
+    conn:hasProblem problem:text-classification ;
+    conn:hasTag tag:arxiv%3A1810.04805,
+        tag:autotrain_compatible,
+        tag:bert,
+        tag:endpoints_compatible,
+        tag:jax,
+        tag:pytorch,
+        tag:region%3Aus,
+        tag:text-classification,
+        tag:transformers ;
+    conn:lastModified "2021-12-31T16:08:22+00:00"^^xsd:dateTime ;
+    conn:likes 3710303 ;
+    conn:model_id "621ffdc136468d709f1796d3"^^xsd:string ;
+    conn:model_name "avichr/heBERT_sentiment_analysis"^^xsd:string ;
+    conn:type conn:Model ;
+    conn:usesLibrary library:transformers .
+
+<http://example.org/model/cardiffnlp/twitter-roberta-base-sentiment-latest> conn:downloads 5338483 ;
+    conn:hasCoverTag tag:nlp ;
+    conn:hasProblem problem:text-classification ;
+    conn:hasTag tag:autotrain_compatible,
+        tag:endpoints_compatible,
+        tag:pytorch,
+        tag:region%3Aus,
+        tag:roberta,
+        tag:text-classification,
+        tag:transformers ;
+    conn:lastModified "2023-05-28T05:45:10+00:00"^^xsd:dateTime ;
+    conn:likes 5338483 ;
+    conn:model_id "622fea36174feb5439c2e4be"^^xsd:string ;
+    conn:model_name "cardiffnlp/twitter-roberta-base-sentiment-latest"^^xsd:string ;
+    conn:type conn:Model ;
+    conn:usesLibrary library:transformers .
+
+<http://example.org/model/distilbert/distilbert-base-uncased-finetuned-sst-2-english> conn:downloads 7256764 ;
+    conn:hasCoverTag tag:nlp ;
+    conn:hasProblem problem:text-classification ;
+    conn:hasTag tag:autotrain_compatible,
+        tag:distilbert,
+        tag:endpoints_compatible,
+        tag:license%3Aapache-2.0,
+        tag:model-index,
+        tag:onnx,
+        tag:pytorch,
+        tag:region%3Aus,
+        tag:rust,
+        tag:safetensors,
+        tag:text-classification,
+        tag:transformers ;
+    conn:lastModified "2023-12-19T16:29:37+00:00"^^xsd:dateTime ;
+    conn:likes 7256764 ;
+    conn:model_id "621ffdc036468d709f174346"^^xsd:string ;
+    conn:model_name "distilbert/distilbert-base-uncased-finetuned-sst-2-english"^^xsd:string ;
+    conn:type conn:Model ;
+    conn:usesLibrary library:transformers .
+
+<http://example.org/model/facebook/bart-large-mnli> conn:downloads 2929233 ;
+    conn:hasCoverTag tag:nlp ;
+    conn:hasProblem problem:text-classification ;
+    conn:hasTag tag:autotrain_compatible,
+        tag:bart,
+        tag:dataset%3Amulti_nli,
+        tag:endpoints_compatible,
+        tag:jax,
+        tag:license%3Amit,
+        tag:pytorch,
+        tag:region%3Aus,
+        tag:rust,
+        tag:safetensors,
+        tag:text-classification,
+        tag:transformers,
+        tag:zero-shot-classification ;
+    conn:lastModified "2023-09-05T14:49:34+00:00"^^xsd:dateTime ;
+    conn:likes 2929233 ;
+    conn:model_id "621ffdc136468d709f17adb7"^^xsd:string ;
+    conn:model_name "facebook/bart-large-mnli"^^xsd:string ;
+    conn:type conn:Model ;
+    conn:usesLibrary library:transformers .
+
+<http://example.org/model/facebook/fasttext-language-identification> conn:downloads 53107820 ;
+    conn:hasCoverTag tag:nlp ;
+    conn:hasProblem problem:text-classification ;
+    conn:hasTag tag:license%3Acc-by-nc-4.0,
+        tag:region%3Aus,
+        tag:text-classification ;
+    conn:lastModified "2023-06-09T12:39:43+00:00"^^xsd:dateTime ;
+    conn:likes 53107820 ;
+    conn:model_id "6405e2229f5bb41f15e94b68"^^xsd:string ;
+    conn:model_name "facebook/fasttext-language-identification"^^xsd:string ;
+    conn:type conn:Model ;
+    conn:usesLibrary library:fasttext .
+
+<http://example.org/model/mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis> conn:downloads 3924929 ;
+    conn:hasCoverTag tag:nlp ;
+    conn:hasProblem problem:text-classification ;
+    conn:hasTag tag:autotrain_compatible,
+        tag:endpoints_compatible,
+        tag:generated_from_trainer,
+        tag:license%3Aapache-2.0,
+        tag:model-index,
+        tag:pytorch,
+        tag:region%3Aus,
+        tag:roberta,
+        tag:safetensors,
+        tag:tensorboard,
+        tag:text-classification,
+        tag:transformers ;
+    conn:lastModified "2024-01-21T15:17:58+00:00"^^xsd:dateTime ;
+    conn:likes 3924929 ;
+    conn:model_id "621ffdc136468d709f17e2c1"^^xsd:string ;
+    conn:model_name "mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis"^^xsd:string ;
+    conn:type conn:Model ;
+    conn:usesLibrary library:transformers .
+
+<http://example.org/model/papluca/xlm-roberta-base-language-detection> conn:downloads 3107915 ;
+    conn:hasCoverTag tag:nlp ;
+    conn:hasProblem problem:text-classification ;
+    conn:hasTag tag:autotrain_compatible,
+        tag:endpoints_compatible,
+        tag:generated_from_trainer,
+        tag:license%3Amit,
+        tag:multilingual,
+        tag:pytorch,
+        tag:region%3Aus,
+        tag:safetensors,
+        tag:text-classification,
+        tag:transformers,
+        tag:xlm-roberta ;
+    conn:lastModified "2023-12-28T13:54:18+00:00"^^xsd:dateTime ;
+    conn:likes 3107915 ;
+    conn:model_id "621ffdc136468d709f17ebd6"^^xsd:string ;
+    conn:model_name "papluca/xlm-roberta-base-language-detection"^^xsd:string ;
+    conn:type conn:Model ;
+    conn:usesLibrary library:transformers .
+
+library:fasttext conn:type conn:Library .
+
+tag:arxiv%3A1810.04805 conn:type conn:Tag .
+
+tag:bart conn:type conn:Tag .
+
+tag:bert conn:type conn:Tag .
+
+tag:dataset%3Amulti_nli conn:type conn:Tag .
+
+tag:license%3Acc-by-nc-4.0 conn:type conn:Tag .
+
+tag:multilingual conn:type conn:Tag .
+
+tag:onnx conn:type conn:Tag .
+
+tag:xlm-roberta conn:type conn:Tag .
+
+tag:zero-shot-classification conn:type conn:Tag .
+
+tag:jax conn:type conn:Tag .
+
+tag:rust conn:type conn:Tag .
+
+tag:tensorboard conn:type conn:Tag .
+
+tag:distilbert conn:type conn:Tag .
+
+tag:generated_from_trainer conn:type conn:Tag .
+
+tag:license%3Aapache-2.0 conn:type conn:Tag .
+
+tag:license%3Amit conn:type conn:Tag .
+
+tag:model-index conn:type conn:Tag .
+
+tag:roberta conn:type conn:Tag .
+
+tag:safetensors conn:type conn:Tag .
+
+tag:pytorch conn:type conn:Tag .
+
+library:transformers conn:type conn:Library .
+
+tag:autotrain_compatible conn:type conn:Tag .
+
+tag:endpoints_compatible conn:type conn:Tag .
+
+tag:transformers conn:type conn:Tag .
+
+problem:text-classification conn:isA tag:nlp ;
+    conn:type conn:Problem .
+
+tag:region%3Aus conn:type conn:Tag .
+
+tag:text-classification conn:type conn:Tag .
+
+tag:nlp conn:type conn:CoverTag .
+
