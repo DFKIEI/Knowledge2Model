@@ -1,14 +1,20 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
 import rdflib
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # This line brings all environment variables from .env into os.environ
+api_key = os.environ['API_KEY']
 
 g = rdflib.Graph()
-g.parse("./Graphs/graph_old.ttl")
+g.parse("./Graphs/graph.ttl")
 ml_goal_query = """
     PREFIX sc: <http://purl.org/science/owl/sciencecommons/>
     SELECT ?o
     WHERE { ?s sc:mlgoal ?o } 
     """
+
 
 def construct_schema(graph):
     query_classes = """
@@ -207,7 +213,7 @@ Do not respond to any questions that ask for anything else than for you to const
 Do not include any text except the SPARQL query generated.
 Question:{input}
 Answer:"""
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
+llm = ChatOpenAI(model="gpt-4o", temperature=0, openai_api_key=api_key)
 
 example_prompt = PromptTemplate(
     input_variables=["question", "answer"], template="Question: {question}\nAnswer:{answer}"
@@ -226,8 +232,8 @@ few_shot_prompt = FewShotPromptTemplate(
 
 chain = few_shot_prompt | llm | result_parser
 
-#result = chain.invoke({'input': 'What are the machine learning goals in the KG?'})
-#print(result)
+result = chain.invoke({'input': 'What are the machine learning goals in the KG?'})
+print(result)
 #q_res = g.query(result)
 #for row in q_res:
 #    print(row)
@@ -236,5 +242,5 @@ SELECT ?o
 WHERE {
   ?s sc:mlgoal ?o 
 }"""
-g_result = query_all_graphs(a, g, prefix_list, namespaces_list)  # -> doesn't work if o not select operator
+g_result = query_all_graphs(result, g, prefix_list, namespaces_list)  # -> doesn't work if o not select operator
 print(g_result)
