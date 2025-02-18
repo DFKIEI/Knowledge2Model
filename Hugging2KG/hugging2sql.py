@@ -12,7 +12,7 @@ tags = json.loads(response.content)["pipeline_tag"]
 # libraries = json.loads(response.content)["library"]
 print(tags)
 
-
+exit(0)
 conn = sqlite3.connect('./Hugging2KG/huggingface.db')
 cursor = conn.cursor()
 

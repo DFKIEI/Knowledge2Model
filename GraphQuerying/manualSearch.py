@@ -68,6 +68,42 @@ def get_all_metrics(graph):
     return metrics
 
 
+
+def get_metrics_by_modality(graph, modality):
+    query = """
+    PREFIX conn: <http://example.org/conn/>
+    PREFIX metric: <http://example.org/metric/>
+    PREFIX tag: <http://example.org/tag/>
+    SELECT ?model ?metricName 
+    WHERE {
+        ?model a conn:Model .
+        ?model conn:hasCoverTag ?coverTag .
+        ?model metric:hasMetric ?metric .
+        ?metric metric:metricName ?metricName .
+        ?metric metric:onDataset ?dataset .
+        ?metric metric:hasScore ?score .
+        FILTER (?coverTag = ?modality)
+    }
+    """
+
+    results = graph.query(query, initBindings={'modality': Literal(modality)})
+
+    metrics_by_model = {}
+    for row in results:
+        model = str(row[0])
+        metric_name = str(row[1])
+        dataset = str(row[2])
+        score = str(row[3]) # Keep score as string for now, convert if needed later
+
+        if model not in metrics_by_model:
+            metrics_by_model[model] = {}
+        if metric_name not in metrics_by_model[model]:
+            metrics_by_model[model][metric_name] = {}
+        metrics_by_model[model][metric_name][dataset] = score
+
+    return metrics_by_model
+
+
 def get_models_with_higher_score(graph, metric_name, dataset, score_threshold):
     query = """
     PREFIX conn: <http://example.org/conn/>

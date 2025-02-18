@@ -2,6 +2,7 @@ import sqlite3
 from rdflib import Graph, Literal, Namespace, RDF
 from rdflib.namespace import XSD
 import ast
+import json
 
 # Namespaces
 CONN = Namespace("http://example.org/conn/")
@@ -11,16 +12,26 @@ TAG = Namespace("http://example.org/tag/")
 LIBRARY = Namespace("http://example.org/library/")
 METRIC = Namespace("http://example.org/metric/")
 TECH = Namespace("http://example.org/tech/")
+MODALITY = Namespace("http://example.org/modality/")
 
 # Extract Tags from Stringified List
 allowed_tags = set()
-with open('./Hugging2KG/topTags.txt', 'r', encoding='utf-8') as file:
+with open('./topTags.txt', 'r', encoding='utf-8') as file:
     for line in file:
         tag = line.strip()
         if tag:
             allowed_tags.add(tag)
 
-conn = sqlite3.connect('./Hugging2KG/huggingface.db')
+
+
+
+# Load Modality Mapping from JSON
+with open("modality_mapping.json", "r") as f:
+    modality_mapping = json.load(f)
+problem_nodes = {}
+modality_nodes = {}
+
+conn = sqlite3.connect('.//huggingface2.db')
 cursor = conn.cursor()
 cursor.execute("SELECT * FROM Models")
 rows = cursor.fetchall()
@@ -35,6 +46,7 @@ g.bind("tag", TAG)
 g.bind("library", LIBRARY)
 g.bind("metric", METRIC)  # Bind the metric namespace
 g.bind("tech", TECH)
+g.bind("modality", MODALITY)
 
 print("Moving SQL to Graph")
 for row in rows:
@@ -71,8 +83,41 @@ for row in rows:
     g.add((model_node, CONN.likes, Literal(likes, datatype=XSD.integer)))
     g.add((model_node, CONN.lastModified, Literal(lastModified, datatype=XSD.dateTime)))
 
+    # Problem and Modality
+    if problem in modality_mapping:
+        if problem not in problem_nodes:
+            problem_node = PROBLEM[problem]
+            g.add((problem_node, RDF.type, CONN.Problem))
+            problem_nodes[problem] = problem_node
+        else:
+            problem_node = problem_nodes[problem]
+
+        g.add((model_node, CONN.hasProblem, problem_node))
+
+        input_modality = modality_mapping[problem]["input"]
+        output_modality = modality_mapping[problem]["output"]
+
+        if input_modality not in modality_nodes:
+            input_node = MODALITY[input_modality]
+            g.add((input_node, RDF.type, MODALITY.Modality))
+            modality_nodes[input_modality] = input_node
+        else:
+            input_node = modality_nodes[input_modality]
+
+        if output_modality not in modality_nodes:
+            output_node = MODALITY[output_modality]
+            g.add((output_node, RDF.type, MODALITY.Modality))
+            modality_nodes[output_modality] = output_node
+        else:
+            output_node = modality_nodes[output_modality]
+
+        g.add((problem_node, MODALITY.hasInput, input_node))
+        g.add((problem_node, MODALITY.hasOutput, output_node))
+
+
+
     # Relationships
-    g.add((model_node, CONN.hasProblem, problem_node))
+    #g.add((model_node, CONN.hasProblem, problem_node))
     g.add((model_node, CONN.hasCoverTag, coverTag_node))
     g.add((model_node, CONN.usesLibrary, library_node))
     g.add((problem_node, CONN.hasCoverTag, coverTag_node))
@@ -173,7 +218,7 @@ for row in rows:
 
 # TO FILE
 print("Saving to Graph")
-g.serialize("./Graphs/graph.ttl", format="turtle")
+g.serialize("./test_graph.ttl", format="turtle")
 
 conn.close()
 
