@@ -9,13 +9,15 @@ MODEL = Namespace("http://example.org/model/")
 PROBLEM = Namespace("http://example.org/problem/")
 TAG = Namespace("http://example.org/tag/")
 LIBRARY = Namespace("http://example.org/library/")
+METRIC = Namespace("http://example.org/metric/")
+TECH = Namespace("http://example.org/tech/")
 
 # Extract Tags from Stringified List
 allowed_tags = set()
 with open('./Hugging2KG/topTags.txt', 'r', encoding='utf-8') as file:
     for line in file:
         tag = line.strip()
-        if tag: 
+        if tag:
             allowed_tags.add(tag)
 
 conn = sqlite3.connect('./Hugging2KG/huggingface.db')
@@ -31,6 +33,8 @@ g.bind("model", MODEL)
 g.bind("problem", PROBLEM)
 g.bind("tag", TAG)
 g.bind("library", LIBRARY)
+g.bind("metric", METRIC)  # Bind the metric namespace
+g.bind("tech", TECH)
 
 print("Moving SQL to Graph")
 for row in rows:
@@ -43,6 +47,10 @@ for row in rows:
     downloads = row[6]
     likes = row[7]
     lastModified = row[8]
+    model_card_tags = row[9]
+    model_card_tags = row[10]
+    metrics = row[11]
+
 
     # Literals for string based KG
     model_node = Literal(model_name)
@@ -77,14 +85,98 @@ for row in rows:
                 if tag in allowed_tags:
                     tag_literal = Literal(tag, datatype=XSD.string)
                     g.add((model_node, CONN.hasTag, tag_literal))
-                    g.add((tag_literal, RDF.type, CONN.Tag)) 
+                    g.add((tag_literal, RDF.type, CONN.Tag))
         else:
             print(f"Tags for model {model_name} are not in a list format")
     except Exception as e:
         print(f"Error parsing tags for model {model_name}: {e}")
+
+    # Add model_card_tags
+    if model_card_tags:
+        for tag_str in model_card_tags.split(','):
+            tag_str = tag_str.strip()
+            if tag_str:
+                try:
+                    parts = tag_str.split(':')
+                    if len(parts) == 2:
+                        edge_name = parts[0].strip()
+                        node_value = parts[1].strip()
+                        edge_uri = None
+                        if edge_name == "metric":
+                            metric_parts = node_value.split('|')
+                            if len(metric_parts) == 3:
+                                metric_name = metric_parts[0]
+                                dataset = metric_parts[1]
+                                score = metric_parts[2]
+                                metric_literal = Literal(metric_name, datatype=XSD.string)
+                                dataset_literal = Literal(dataset, datatype=XSD.string)
+                                score_literal = Literal(score, datatype=XSD.string)
+
+                                g.add((model_node, METRIC.hasMetric, metric_literal))
+                                g.add((metric_literal, RDF.type, METRIC.Metric))
+                                g.add((metric_literal, METRIC.onDataset, dataset_literal))
+                                g.add((metric_literal, METRIC.hasScore, score_literal))
+                            continue  # skip the rest of the loop for metrics
+                        elif edge_name in ["task_type", "architecture", "base_model", "parameters", "dataset",
+                                           "modality", "sequence_length", "quantization"]:
+                            edge_uri = CONN[edge_name]  # Use CONN namespace for model fundamentals
+                        elif edge_name in ["speed", "memory", "hardwar_needs"]:
+                            edge_uri = TECH[edge_name]  # Use TECH namespace for technical requirements
+                        else:
+                            print(f"Unknown edge type: {edge_name}")
+                            continue
+
+                        if edge_uri:
+                            node_literal = Literal(node_value, datatype=XSD.string)  # Or appropriate datatype
+                            g.add((model_node, edge_uri, node_literal))
+                            # Add type for the node based on edge type or some other logic
+                            if edge_name in ["task_type", "architecture", "base_model", "parameters", "dataset",
+                                             "modality", "sequence_length", "quantization"]:
+                                g.add((node_literal, RDF.type, CONN[edge_name.capitalize()]))
+                            elif edge_name in ["speed", "memory", "hardwar_needs"]:
+                                g.add((node_literal, RDF.type, TECH[edge_name.capitalize()]))
+
+                    else:
+                        print(f"Invalid tag format: {tag_str}")
+
+                except Exception as e:
+                    print(f"Error processing tag '{tag_str}': {e}")
+
+    # Add metrics
+    if metrics:
+        for metric_str in metrics.split(','):
+            metric_str = metric_str.strip()
+            if metric_str:
+                try:
+                    parts = metric_str.split('|')
+                    if len(parts) == 3 and parts[0].startswith("metric:"):  # check if metric has the correct format
+                        metric_name = parts[0].split(":")[1]
+                        dataset = parts[1]
+                        score = parts[2]
+
+                        metric_literal = Literal(metric_name, datatype=XSD.string)
+                        dataset_literal = Literal(dataset, datatype=XSD.string)
+                        score_literal = Literal(score, datatype=XSD.string)
+
+                        g.add((model_node, METRIC.hasMetric, metric_literal))
+                        g.add((metric_literal, RDF.type, METRIC.Metric))
+                        g.add((metric_literal, METRIC.onDataset, dataset_literal))
+                        g.add((metric_literal, METRIC.hasScore, score_literal))
+
+                    else:
+                        print(f"Invalid metric format: {metric_str}")
+
+                except Exception as e:
+                    print(f"Error processing metric '{metric_str}': {e}")
+
+
 
 # TO FILE
 print("Saving to Graph")
 g.serialize("./Graphs/graph.ttl", format="turtle")
 
 conn.close()
+
+
+
+
