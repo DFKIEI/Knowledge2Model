@@ -169,3 +169,5 @@ cython_debug/
 **/.DS_Store
 **/._.DS_Store
 .venv
+/Hugging2KG/huggingface2_old.db
+/Hugging2KG/huggingface2.db
