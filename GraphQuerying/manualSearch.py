@@ -279,7 +279,7 @@ def print_model_details(details):
 
 
 if __name__ == "__main__":
-    graph = load_graph("./Hugging2KG/test_graph.ttl")
+    graph = load_graph("./Graphs/graph_v2.ttl")
 
     # Get Modality (Cover Tags)
     cover_tags = get_cover_tags(graph)
