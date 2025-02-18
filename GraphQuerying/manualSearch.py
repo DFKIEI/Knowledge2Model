@@ -34,8 +34,10 @@ def get_problems(graph):
     return problems
 
 
-def get_problems_for_cover_tag(graph, cover_tag_literal_text):
-    cover_tag_literal = Literal(cover_tag_literal_text, datatype=XSD.string)
+def get_problems_for_cover_tag(graph, cover_tag_text):
+    # cover_tag_literal = Literal(cover_tag_literal_text, datatype=XSD.string)
+    TAG = Namespace("http://example.org/tag/")
+    cover_tag_iri = TAG[cover_tag_text]
 
     query = """
     PREFIX conn: <http://example.org/conn/>
@@ -45,63 +47,100 @@ def get_problems_for_cover_tag(graph, cover_tag_literal_text):
     WHERE {
       ?problem a conn:Problem .
       ?problem conn:hasCoverTag ?coverTag .
-      FILTER (?coverTag = ?cover_tag_literal)
+      FILTER (?coverTag = ?cover_tag_iri)
     }
     """
 
-    results = graph.query(query, initBindings={'cover_tag_literal': cover_tag_literal})
+    results = graph.query(query, initBindings={'cover_tag_iri': cover_tag_iri})
     problems = [row[0] for row in results]
     return problems
 
 
 def get_all_metrics(graph):
     query = """
+    PREFIX conn: <http://example.org/conn/>  # Add conn prefix
     PREFIX metric: <http://example.org/metric/>
-    SELECT DISTINCT ?metricName 
+    SELECT DISTINCT ?metric 
     WHERE {
-        ?metric a metric:Metric .
-        ?metric metric:metricName ?metricName .
+      ?metric a metric:Metric.
     }
     """
     results = graph.query(query)
-    metrics = {str(metric) for metric in results}
+    metrics = {str(metric[0]) for metric in results}
     return metrics
 
 
+def get_metrics_for_modality_slow(graph, input_modality, output_modality):
+    """
+    input_modality: The input modality (e.g., "Text", "Image").
+    output_modality: The output modality (e.g., "Label", "Text").
+    """
 
-def get_metrics_by_modality(graph, modality):
     query = """
     PREFIX conn: <http://example.org/conn/>
+    PREFIX modality: <http://example.org/modality/>
     PREFIX metric: <http://example.org/metric/>
-    PREFIX tag: <http://example.org/tag/>
-    SELECT ?model ?metricName 
-    WHERE {
-        ?model a conn:Model .
-        ?model conn:hasCoverTag ?coverTag .
-        ?model metric:hasMetric ?metric .
-        ?metric metric:metricName ?metricName .
-        ?metric metric:onDataset ?dataset .
-        ?metric metric:hasScore ?score .
-        FILTER (?coverTag = ?modality)
+
+    SELECT DISTINCT ?metric
+WHERE {
+    ?problem a conn:Problem .
+    ?problem modality:hasInput ?input .
+    ?problem modality:hasOutput ?output .
+    ?model a conn:Model .
+    ?model conn:hasProblem ?problem .
+    ?model metric:hasMetric ?metric .
+    ?metric a metric:Metric.
+
+    FILTER(?input = ?inputMod && ?output = ?outputMod)
     }
     """
 
-    results = graph.query(query, initBindings={'modality': Literal(modality)})
+    input_uri = Namespace("http://example.org/modality/")[input_modality]
+    output_uri = Namespace("http://example.org/modality/")[output_modality]
 
-    metrics_by_model = {}
-    for row in results:
-        model = str(row[0])
-        metric_name = str(row[1])
-        dataset = str(row[2])
-        score = str(row[3]) # Keep score as string for now, convert if needed later
+    results = graph.query(query, initBindings={
+        'inputMod': input_uri,
+        'outputMod': output_uri
+    })
 
-        if model not in metrics_by_model:
-            metrics_by_model[model] = {}
-        if metric_name not in metrics_by_model[model]:
-            metrics_by_model[model][metric_name] = {}
-        metrics_by_model[model][metric_name][dataset] = score
+    metrics = {str(row) for row in results}
+    return metrics
 
-    return metrics_by_model
+
+def get_metrics_for_modality(graph, input_modality, output_modality):
+    """
+    input_modality: The input modality (e.g., "Text", "Image").
+    output_modality: The output modality (e.g., "Label", "Text").
+    """
+
+    query = """
+    PREFIX modality: <http://example.org/modality/>
+    PREFIX metric: <http://example.org/metric/>
+
+    SELECT DISTINCT ?metric
+    WHERE {
+      { # Metrics related to input modality
+        ?inputModalityNode modality:hasRelatedMetric ?metric .
+        ?metric a metric:Metric .
+        FILTER (?inputModalityNode = ?inputMod)
+      } UNION {
+        ?outputModalityNode modality:hasRelatedMetric ?metric .
+        ?metric a metric:Metric .
+        FILTER (?outputModalityNode = ?outputMod)
+      }
+    }
+    """
+
+    input_uri = Namespace("http://example.org/modality/")[input_modality]
+    output_uri = Namespace("http://example.org/modality/")[output_modality]
+
+    results = graph.query(query, initBindings={
+        'inputMod': input_uri,
+        'outputMod': output_uri
+    })
+
+    metrics = {str(row[0]) for row in results}
+    return metrics
 
 
 def get_models_with_higher_score(graph, metric_name, dataset, score_threshold):
@@ -240,7 +279,7 @@ def print_model_details(details):
 
 
 if __name__ == "__main__":
-    graph = load_graph("./Graphs/graph.ttl")
+    graph = load_graph("./Hugging2KG/test_graph.ttl")
 
     # Get Modality (Cover Tags)
     cover_tags = get_cover_tags(graph)
@@ -263,3 +302,12 @@ if __name__ == "__main__":
     model_name = "OleehyO/TexTeller"
     model_details = get_model_details(graph, model_name)
     print_model_details(model_details)
+
+    # metrics =get_all_metrics(graph)
+    # print_results(metrics, "metrics supported")
+
+    # Get Metrics for Modality
+    input_modality = "Image"
+    output_modality = "Label"
+    metrics = get_metrics_for_modality(graph, input_modality, output_modality)
+    print_results(metrics, "Metrics for Image to Label modality")

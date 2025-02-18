@@ -3,6 +3,7 @@ from rdflib import Graph, Literal, Namespace, RDF
 from rdflib.namespace import XSD
 import ast
 import json
+from urllib.parse import quote
 
 # Namespaces
 CONN = Namespace("http://example.org/conn/")
@@ -22,12 +23,13 @@ with open('./topTags.txt', 'r', encoding='utf-8') as file:
         if tag:
             allowed_tags.add(tag)
 
-
-
-
 # Load Modality Mapping from JSON
 with open("modality_mapping.json", "r") as f:
     modality_mapping = json.load(f)
+
+with open("metric_mapping.json", "r") as f:
+    metric_mapping = json.load(f)
+
 problem_nodes = {}
 modality_nodes = {}
 
@@ -49,7 +51,9 @@ g.bind("tech", TECH)
 g.bind("modality", MODALITY)
 
 print("Moving SQL to Graph")
-for row in rows:
+for idx_count, row in enumerate(rows):
+    # if idx_count>500:
+    # break
     model_id = row[0]
     model_name = row[1]
     problem = row[2]
@@ -59,16 +63,21 @@ for row in rows:
     downloads = row[6]
     likes = row[7]
     lastModified = row[8]
-    model_card_tags = row[9]
+    model_card = row[9]
     model_card_tags = row[10]
     metrics = row[11]
 
-
-    # Literals for string based KG
+    """    # Literals for string based KG
     model_node = Literal(model_name)
-    problem_node = Literal(problem)
+    problem_node =PROBLEM[problem]  #  Literal(problem)
     coverTag_node = Literal(coverTag)
-    library_node = Literal(library)
+    library_node = Literal(library)"""
+
+    # Use URIRef for nodes (IRIs)
+    model_node = CONN[model_name]  # Or a more specific IRI if needed
+    problem_node = PROBLEM[problem]
+    coverTag_node = TAG[coverTag]  # Use IRI for cover tag
+    library_node = LIBRARY[quote(library)]
 
     # Add Types
     g.add((model_node, RDF.type, CONN.Model))
@@ -113,14 +122,55 @@ for row in rows:
 
         g.add((problem_node, MODALITY.hasInput, input_node))
         g.add((problem_node, MODALITY.hasOutput, output_node))
+        g.add((problem_node, CONN.hasCoverTag, coverTag_node))
 
+        # Add metrics
+        if metrics:
+            for metric_str in metrics.split(','):
+                metric_str = metric_str.strip()
+                if metric_str:
+                    try:
+                        parts = metric_str.split('|')
+                        if len(parts) == 3 and parts[0].startswith("metric:"):  # check if metric has the correct format
+                            metric_name = parts[0].split(":")[1]
+                            if len(metric_name) == 1:
+                                continue
+                            # Metric Normalization
+                            normalized_metric_name = None
+                            for standardized_name, aliases in metric_mapping.items():  # use metric_mapping_metrics here
+                                if metric_name.lower() in [alias.lower() for alias in aliases]:
+                                    normalized_metric_name = standardized_name
+                                    break
+                            if normalized_metric_name:
+                                metric_name = normalized_metric_name
 
+                            dataset = parts[1]
+                            score = parts[2]
+
+                            metric_literal = Literal(metric_name, datatype=XSD.string)
+                            dataset_literal = Literal(dataset, datatype=XSD.string)
+                            score_literal = Literal(score, datatype=XSD.string)
+
+                            g.add((model_node, METRIC.hasMetric, metric_literal))
+
+                            # NEW DIRECT LINKS FROM MODALITY TO METRIC
+                            g.add((input_node, MODALITY.hasRelatedMetric, metric_literal))
+                            g.add((output_node, MODALITY.hasRelatedMetric, metric_literal))
+
+                            g.add((metric_literal, RDF.type, METRIC.Metric))
+                            g.add((metric_literal, METRIC.onDataset, dataset_literal))
+                            g.add((metric_literal, METRIC.hasScore, score_literal))
+
+                        else:
+                            print(f"Invalid metric format: {metric_str}")
+
+                    except Exception as e:
+                        print(f"Error processing metric '{metric_str}': {e}")
 
     # Relationships
-    #g.add((model_node, CONN.hasProblem, problem_node))
+    # g.add((model_node, CONN.hasProblem, problem_node))
     g.add((model_node, CONN.hasCoverTag, coverTag_node))
     g.add((model_node, CONN.usesLibrary, library_node))
-    g.add((problem_node, CONN.hasCoverTag, coverTag_node))
 
     try:
         tags_list = ast.literal_eval(tags)
@@ -148,37 +198,24 @@ for row in rows:
                         node_value = parts[1].strip()
                         edge_uri = None
                         if edge_name == "metric":
-                            metric_parts = node_value.split('|')
-                            if len(metric_parts) == 3:
-                                metric_name = metric_parts[0]
-                                dataset = metric_parts[1]
-                                score = metric_parts[2]
-                                metric_literal = Literal(metric_name, datatype=XSD.string)
-                                dataset_literal = Literal(dataset, datatype=XSD.string)
-                                score_literal = Literal(score, datatype=XSD.string)
-
-                                g.add((model_node, METRIC.hasMetric, metric_literal))
-                                g.add((metric_literal, RDF.type, METRIC.Metric))
-                                g.add((metric_literal, METRIC.onDataset, dataset_literal))
-                                g.add((metric_literal, METRIC.hasScore, score_literal))
-                            continue  # skip the rest of the loop for metrics
+                            continue  # skip
                         elif edge_name in ["task_type", "architecture", "base_model", "parameters", "dataset",
                                            "modality", "sequence_length", "quantization"]:
                             edge_uri = CONN[edge_name]  # Use CONN namespace for model fundamentals
-                        elif edge_name in ["speed", "memory", "hardwar_needs"]:
+                        elif edge_name in ["speed", "memory", "hardware_needs"]:
                             edge_uri = TECH[edge_name]  # Use TECH namespace for technical requirements
                         else:
                             print(f"Unknown edge type: {edge_name}")
                             continue
 
                         if edge_uri:
-                            node_literal = Literal(node_value, datatype=XSD.string)  # Or appropriate datatype
+                            node_literal = Literal(node_value, datatype=XSD.string)
                             g.add((model_node, edge_uri, node_literal))
                             # Add type for the node based on edge type or some other logic
                             if edge_name in ["task_type", "architecture", "base_model", "parameters", "dataset",
                                              "modality", "sequence_length", "quantization"]:
                                 g.add((node_literal, RDF.type, CONN[edge_name.capitalize()]))
-                            elif edge_name in ["speed", "memory", "hardwar_needs"]:
+                            elif edge_name in ["speed", "memory", "hardware_needs"]:
                                 g.add((node_literal, RDF.type, TECH[edge_name.capitalize()]))
 
                     else:
@@ -187,41 +224,8 @@ for row in rows:
                 except Exception as e:
                     print(f"Error processing tag '{tag_str}': {e}")
 
-    # Add metrics
-    if metrics:
-        for metric_str in metrics.split(','):
-            metric_str = metric_str.strip()
-            if metric_str:
-                try:
-                    parts = metric_str.split('|')
-                    if len(parts) == 3 and parts[0].startswith("metric:"):  # check if metric has the correct format
-                        metric_name = parts[0].split(":")[1]
-                        dataset = parts[1]
-                        score = parts[2]
-
-                        metric_literal = Literal(metric_name, datatype=XSD.string)
-                        dataset_literal = Literal(dataset, datatype=XSD.string)
-                        score_literal = Literal(score, datatype=XSD.string)
-
-                        g.add((model_node, METRIC.hasMetric, metric_literal))
-                        g.add((metric_literal, RDF.type, METRIC.Metric))
-                        g.add((metric_literal, METRIC.onDataset, dataset_literal))
-                        g.add((metric_literal, METRIC.hasScore, score_literal))
-
-                    else:
-                        print(f"Invalid metric format: {metric_str}")
-
-                except Exception as e:
-                    print(f"Error processing metric '{metric_str}': {e}")
-
-
-
 # TO FILE
 print("Saving to Graph")
 g.serialize("./test_graph.ttl", format="turtle")
 
 conn.close()
-
-
-
-
