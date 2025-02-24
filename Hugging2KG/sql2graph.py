@@ -46,7 +46,7 @@ g.bind("model", MODEL)
 g.bind("problem", PROBLEM)
 g.bind("tag", TAG)
 g.bind("library", LIBRARY)
-g.bind("metric", METRIC)  # Bind the metric namespace
+g.bind("metric", METRIC)
 g.bind("tech", TECH)
 g.bind("modality", MODALITY)
 
@@ -67,19 +67,13 @@ for idx_count, row in enumerate(rows):
     model_card_tags = row[10]
     metrics = row[11]
 
-    """    # Literals for string based KG
-    model_node = Literal(model_name)
-    problem_node =PROBLEM[problem]  #  Literal(problem)
-    coverTag_node = Literal(coverTag)
-    library_node = Literal(library)"""
+    # Use Literals 
+    model_node = Literal(model_name, datatype=XSD.string)  
+    problem_node = Literal(problem, datatype=XSD.string)  
+    coverTag_node = Literal(coverTag, datatype=XSD.string)  
+    library_node = Literal(library, datatype=XSD.string)  
 
-    # Use URIRef for nodes (IRIs)
-    model_node = CONN[model_name]  # Or a more specific IRI if needed
-    problem_node = PROBLEM[problem]
-    coverTag_node = TAG[coverTag]  # Use IRI for cover tag
-    library_node = LIBRARY[quote(library)]
-
-    # Add Types
+    # Add Types for RDF 
     g.add((model_node, RDF.type, CONN.Model))
     g.add((problem_node, RDF.type, CONN.Problem))
     g.add((coverTag_node, RDF.type, CONN.CoverTag))
@@ -92,34 +86,15 @@ for idx_count, row in enumerate(rows):
     g.add((model_node, CONN.likes, Literal(likes, datatype=XSD.integer)))
     g.add((model_node, CONN.lastModified, Literal(lastModified, datatype=XSD.dateTime)))
 
-    # Problem and Modality
+    # Problem and Modality (Literals)
     if problem in modality_mapping:
-        if problem not in problem_nodes:
-            problem_node = PROBLEM[problem]
-            g.add((problem_node, RDF.type, CONN.Problem))
-            problem_nodes[problem] = problem_node
-        else:
-            problem_node = problem_nodes[problem]
-
-        g.add((model_node, CONN.hasProblem, problem_node))
-
         input_modality = modality_mapping[problem]["input"]
         output_modality = modality_mapping[problem]["output"]
 
-        if input_modality not in modality_nodes:
-            input_node = MODALITY[input_modality]
-            g.add((input_node, RDF.type, MODALITY.Modality))
-            modality_nodes[input_modality] = input_node
-        else:
-            input_node = modality_nodes[input_modality]
+        input_node = Literal(input_modality, datatype=XSD.string)
+        output_node = Literal(output_modality, datatype=XSD.string)
 
-        if output_modality not in modality_nodes:
-            output_node = MODALITY[output_modality]
-            g.add((output_node, RDF.type, MODALITY.Modality))
-            modality_nodes[output_modality] = output_node
-        else:
-            output_node = modality_nodes[output_modality]
-
+        g.add((model_node, CONN.hasProblem, problem_node))
         g.add((problem_node, MODALITY.hasInput, input_node))
         g.add((problem_node, MODALITY.hasOutput, output_node))
         g.add((problem_node, CONN.hasCoverTag, coverTag_node))
@@ -152,8 +127,6 @@ for idx_count, row in enumerate(rows):
                             score_literal = Literal(score, datatype=XSD.string)
 
                             g.add((model_node, METRIC.hasMetric, metric_literal))
-
-                            # NEW DIRECT LINKS FROM MODALITY TO METRIC
                             g.add((input_node, MODALITY.hasRelatedMetric, metric_literal))
                             g.add((output_node, MODALITY.hasRelatedMetric, metric_literal))
 
@@ -211,7 +184,7 @@ for idx_count, row in enumerate(rows):
                         if edge_uri:
                             node_literal = Literal(node_value, datatype=XSD.string)
                             g.add((model_node, edge_uri, node_literal))
-                            # Add type for the node based on edge type or some other logic
+
                             if edge_name in ["task_type", "architecture", "base_model", "parameters", "dataset",
                                              "modality", "sequence_length", "quantization"]:
                                 g.add((node_literal, RDF.type, CONN[edge_name.capitalize()]))

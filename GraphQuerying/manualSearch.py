@@ -70,78 +70,6 @@ def get_all_metrics(graph):
     return metrics
 
 
-def get_metrics_for_modality_slow(graph, input_modality, output_modality):
-    """
-    input_modality: The input modality (e.g., "Text", "Image").
-    output_modality: The output modality (e.g., "Label", "Text").
-    """
-
-    query = """
-    PREFIX conn: <http://example.org/conn/>
-    PREFIX modality: <http://example.org/modality/>
-    PREFIX metric: <http://example.org/metric/>
-
-    SELECT DISTINCT ?metric
-WHERE {
-    ?problem a conn:Problem .
-    ?problem modality:hasInput ?input .
-    ?problem modality:hasOutput ?output .
-    ?model a conn:Model .
-    ?model conn:hasProblem ?problem .
-    ?model metric:hasMetric ?metric .
-    ?metric a metric:Metric.
-
-    FILTER(?input = ?inputMod && ?output = ?outputMod)
-    }
-    """
-
-    input_uri = Namespace("http://example.org/modality/")[input_modality]
-    output_uri = Namespace("http://example.org/modality/")[output_modality]
-
-    results = graph.query(query, initBindings={
-        'inputMod': input_uri,
-        'outputMod': output_uri
-    })
-
-    metrics = {str(row) for row in results}
-    return metrics
-
-
-def get_metrics_for_modality(graph, input_modality, output_modality):
-    """
-    input_modality: The input modality (e.g., "Text", "Image").
-    output_modality: The output modality (e.g., "Label", "Text").
-    """
-
-    query = """
-    PREFIX modality: <http://example.org/modality/>
-    PREFIX metric: <http://example.org/metric/>
-
-    SELECT DISTINCT ?metric
-    WHERE {
-      { # Metrics related to input modality
-        ?inputModalityNode modality:hasRelatedMetric ?metric .
-        ?metric a metric:Metric .
-        FILTER (?inputModalityNode = ?inputMod)
-      } UNION {
-        ?outputModalityNode modality:hasRelatedMetric ?metric .
-        ?metric a metric:Metric .
-        FILTER (?outputModalityNode = ?outputMod)
-      }
-    }
-    """
-
-    input_uri = Namespace("http://example.org/modality/")[input_modality]
-    output_uri = Namespace("http://example.org/modality/")[output_modality]
-
-    results = graph.query(query, initBindings={
-        'inputMod': input_uri,
-        'outputMod': output_uri
-    })
-
-    metrics = {str(row[0]) for row in results}
-    return metrics
-
 
 def get_models_with_higher_score(graph, metric_name, dataset, score_threshold):
     query = """
@@ -159,7 +87,7 @@ def get_models_with_higher_score(graph, metric_name, dataset, score_threshold):
     }
     """
 
-    # convert scoree to liiterl
+    # convert score to literal
     score_threshold_literal = Literal(score_threshold, datatype=XSD.float)
 
     results = graph.query(
@@ -278,6 +206,86 @@ def print_model_details(details):
     print()
 
 
+def find_problem_by_modalities(graph, input_modality, output_modality):
+    query = f"""
+    PREFIX modality: <http://example.org/modality/>
+    PREFIX conn: <http://example.org/conn/>
+    
+    SELECT DISTINCT ?problem
+    WHERE {{
+        ?problem a conn:Problem ;
+                 modality:hasInput "{input_modality}"^^xsd:string ;
+                 modality:hasOutput "{output_modality}"^^xsd:string .
+    }}
+    """
+    results = graph.query(query)
+
+    problems = [str(row[0]) for row in results]
+    return problems
+
+def find_models_by_problem(graph, problem_uri):
+    query = f"""
+    PREFIX conn: <http://example.org/conn/>
+    
+    SELECT DISTINCT ?model
+    WHERE {{
+        ?model a conn:Model ;
+               conn:hasProblem "{problem_uri}"^^xsd:string .
+    }}
+    """
+    results = graph.query(query)
+
+    models = [str(row[0]) for row in results]
+    return models
+
+def find_metrics_by_model(graph, model_name):
+    query = f"""
+    PREFIX metric: <http://example.org/metric/>
+    PREFIX conn: <http://example.org/conn/>
+
+    SELECT DISTINCT ?metric
+    WHERE {{
+        ?model a conn:Model ;
+               conn:model_name "{model_name}"^^xsd:string ;
+               metric:hasMetric ?metric .
+    }}
+    """
+    results = graph.query(query)
+
+
+    metrics = [str(row[0]) for row in results]
+    return metrics
+
+def search_metrics_by_modalities(graph, input_modality, output_modality):
+    # Multi Stage Search
+    problems = find_problem_by_modalities(graph, input_modality, output_modality)
+    
+    metrics_for_all_problems = {}
+
+    for problem in problems:
+        models = find_models_by_problem(graph, problem)
+        models_with_metrics = {}
+        
+        for model in models:
+            metrics = find_metrics_by_model(graph, model)
+            models_with_metrics[model] = metrics
+        
+        metrics_for_all_problems[problem] = models_with_metrics
+
+    return metrics_for_all_problems
+
+
+def print_metrics_for_problem(metrics_for_all_problems):
+    for problem, metrics_list in metrics_for_all_problems.items():
+        print(f"Problem: {problem}")
+        unique_metrics = set()  
+        for model, metrics in metrics_list.items():
+            for metric in metrics:
+                unique_metrics.add(metric)
+        
+        for metric in unique_metrics:
+            print(f"  Metric: {metric}")
+
 if __name__ == "__main__":
     graph = load_graph("./Graphs/graph_v2.ttl")
 
@@ -303,11 +311,16 @@ if __name__ == "__main__":
     model_details = get_model_details(graph, model_name)
     print_model_details(model_details)
 
-    # metrics =get_all_metrics(graph)
+    # Get all Metrics supported (LONG PRINT)
+    # metrics = get_all_metrics(graph)
     # print_results(metrics, "metrics supported")
 
     # Get Metrics for Modality
     input_modality = "Image"
     output_modality = "Label"
-    metrics = get_metrics_for_modality(graph, input_modality, output_modality)
-    print_results(metrics, "Metrics for Image to Label modality")
+   
+    metrics = search_metrics_by_modalities(graph, input_modality, output_modality)
+
+    print_metrics_for_problem(metrics)
+
+
