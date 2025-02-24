@@ -34,24 +34,23 @@ def get_problems(graph):
     return problems
 
 
-def get_problems_for_cover_tag(graph, cover_tag_text):
-    # cover_tag_literal = Literal(cover_tag_literal_text, datatype=XSD.string)
-    TAG = Namespace("http://example.org/tag/")
-    cover_tag_iri = TAG[cover_tag_text]
+def get_problems_for_cover_tag(graph, cover_tag):
+    CONN = Namespace("http://example.org/conn/")
+    
+    cover_tag_literal = Literal(cover_tag, datatype=XSD.string)
 
     query = """
     PREFIX conn: <http://example.org/conn/>
     PREFIX problem: <http://example.org/problem/>
-    PREFIX tag: <http://example.org/tag/>
     SELECT ?problem
     WHERE {
       ?problem a conn:Problem .
       ?problem conn:hasCoverTag ?coverTag .
-      FILTER (?coverTag = ?cover_tag_iri)
+      FILTER (?coverTag = ?cover_tag)
     }
     """
 
-    results = graph.query(query, initBindings={'cover_tag_iri': cover_tag_iri})
+    results = graph.query(query, initBindings={'cover_tag': cover_tag_literal})
     problems = [row[0] for row in results]
     return problems
 
@@ -185,26 +184,6 @@ def get_model_details(graph, model_name):
     return details
 
 
-def print_results(literals, label):
-    print(f"List of available {label}:")
-    for literal in literals:
-        print(literal)
-    print()
-
-
-def print_models(models):
-    print("Models ordered by downloads:")
-    for model, downloads in models:
-        print(f"Model: {model}, Downloads: {downloads}")
-    print()
-
-
-def print_model_details(details):
-    print("Model details:")
-    for key, value in details.items():
-        print(f"{key}: {value}")
-    print()
-
 
 def find_problem_by_modalities(graph, input_modality, output_modality):
     query = f"""
@@ -223,20 +202,22 @@ def find_problem_by_modalities(graph, input_modality, output_modality):
     problems = [str(row[0]) for row in results]
     return problems
 
-def find_models_by_problem(graph, problem_uri):
+def find_problem_by_input_modality(graph, input_modality):
     query = f"""
+    PREFIX modality: <http://example.org/modality/>
     PREFIX conn: <http://example.org/conn/>
     
-    SELECT DISTINCT ?model
+    SELECT DISTINCT ?problem
     WHERE {{
-        ?model a conn:Model ;
-               conn:hasProblem "{problem_uri}"^^xsd:string .
+        ?problem a conn:Problem ;
+                 modality:hasInput "{input_modality}"^^xsd:string .
     }}
     """
     results = graph.query(query)
 
-    models = [str(row[0]) for row in results]
-    return models
+    problems = [str(row[0]) for row in results]
+    return problems
+
 
 def find_metrics_by_model(graph, model_name):
     query = f"""
@@ -256,17 +237,16 @@ def find_metrics_by_model(graph, model_name):
     metrics = [str(row[0]) for row in results]
     return metrics
 
-def search_metrics_by_modalities(graph, input_modality, output_modality):
+def search_metrics_by_input_modalities(graph, input_modality, output_modality):
     # Multi Stage Search
-    problems = find_problem_by_modalities(graph, input_modality, output_modality)
-    
+    problems = find_problem_by_input_modality(graph, input_modality)
     metrics_for_all_problems = {}
 
     for problem in problems:
-        models = find_models_by_problem(graph, problem)
+        models = get_models_for_problem(graph, problem)
         models_with_metrics = {}
         
-        for model in models:
+        for model,downloads in models:
             metrics = find_metrics_by_model(graph, model)
             models_with_metrics[model] = metrics
         
@@ -274,6 +254,43 @@ def search_metrics_by_modalities(graph, input_modality, output_modality):
 
     return metrics_for_all_problems
 
+def search_metrics_by_modalities(graph, input_modality, output_modality):
+    # Multi Stage Search
+    problems = find_problem_by_modalities(graph, input_modality, output_modality)
+    metrics_for_all_problems = {}
+
+    for problem in problems:
+        models = get_models_for_problem(graph, problem)
+        models_with_metrics = {}
+        
+        for model,downloads in models:
+            metrics = find_metrics_by_model(graph, model)
+            models_with_metrics[model] = metrics
+        
+        metrics_for_all_problems[problem] = models_with_metrics
+
+    return metrics_for_all_problems
+
+
+def print_results(literals, label):
+    print(f"List of available {label}:")
+    for literal in literals:
+        print(literal)
+    print()
+
+
+def print_models(models):
+    print("Models ordered by downloads:")
+    for model, downloads in models:
+        print(f"Model: {model}, Downloads: {downloads}")
+    print()
+
+
+def print_model_details(details):
+    print("Model details:")
+    for key, value in details.items():
+        print(f"{key}: {value}")
+    print()
 
 def print_metrics_for_problem(metrics_for_all_problems):
     for problem, metrics_list in metrics_for_all_problems.items():
@@ -311,16 +328,18 @@ if __name__ == "__main__":
     model_details = get_model_details(graph, model_name)
     print_model_details(model_details)
 
-    # Get all Metrics supported (LONG PRINT)
-    # metrics = get_all_metrics(graph)
-    # print_results(metrics, "metrics supported")
+    # # Get all Metrics supported (LONG PRINT)
+    metrics = get_all_metrics(graph)
+    print_results(metrics, "metrics supported")
 
     # Get Metrics for Modality
     input_modality = "Image"
     output_modality = "Label"
    
-    metrics = search_metrics_by_modalities(graph, input_modality, output_modality)
+    metrics = search_metrics_by_input_modalities(graph, input_modality, output_modality)
+    print_metrics_for_problem(metrics)
 
+    metrics = search_metrics_by_modalities(graph, input_modality, output_modality)
     print_metrics_for_problem(metrics)
 
 
