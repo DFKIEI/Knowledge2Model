@@ -36,7 +36,7 @@ def get_problems(graph):
 
 def get_problems_for_cover_tag(graph, cover_tag):
     CONN = Namespace("http://example.org/conn/")
-    
+
     cover_tag_literal = Literal(cover_tag, datatype=XSD.string)
 
     query = """
@@ -55,11 +55,39 @@ def get_problems_for_cover_tag(graph, cover_tag):
     return problems
 
 
+def get_modalities_input(graph):
+    query = """
+    PREFIX modality: <http://example.org/modality/>
+    PREFIX conn: <http://example.org/conn/>
+
+    SELECT DISTINCT ?modality
+    WHERE {
+        ?type modality:hasInput ?modality ;
+    }
+    """
+    results = graph.query(query)
+    modalities_input = [row[0] for row in results]
+    return modalities_input
+
+
+def get_modalities_output(graph):
+    query = """
+    PREFIX conn: <http://example.org/conn/>
+    SELECT DISTINCT ?modality
+    WHERE {
+        ?type modality:hasOutput ?modality .
+    }
+    """
+    results = graph.query(query)
+    modalities_output = [row[0] for row in results]
+    return modalities_output
+
+
 def get_all_metrics(graph):
     query = """
     PREFIX conn: <http://example.org/conn/>  # Add conn prefix
     PREFIX metric: <http://example.org/metric/>
-    SELECT DISTINCT ?metric 
+    SELECT DISTINCT ?metric
     WHERE {
       ?metric a metric:Metric.
     }
@@ -82,7 +110,7 @@ def get_models_with_higher_score(graph, metric_name, dataset, score_threshold):
         ?metric metric:metricName ?metricName .
         ?metric metric:onDataset ?dataset .
         ?metric metric:hasScore ?score .
-        FILTER (xsd:float(?score) > ?score_threshold)  
+        FILTER (xsd:float(?score) > ?score_threshold)
     }
     """
 
@@ -189,7 +217,7 @@ def find_problem_by_modalities(graph, input_modality, output_modality):
     query = f"""
     PREFIX modality: <http://example.org/modality/>
     PREFIX conn: <http://example.org/conn/>
-    
+
     SELECT DISTINCT ?problem
     WHERE {{
         ?problem a conn:Problem ;
@@ -206,7 +234,7 @@ def find_problem_by_input_modality(graph, input_modality):
     query = f"""
     PREFIX modality: <http://example.org/modality/>
     PREFIX conn: <http://example.org/conn/>
-    
+
     SELECT DISTINCT ?problem
     WHERE {{
         ?problem a conn:Problem ;
@@ -245,11 +273,11 @@ def search_metrics_by_input_modalities(graph, input_modality, output_modality):
     for problem in problems:
         models = get_models_for_problem(graph, problem)
         models_with_metrics = {}
-        
+
         for model,downloads in models:
             metrics = find_metrics_by_model(graph, model)
             models_with_metrics[model] = metrics
-        
+
         metrics_for_all_problems[problem] = models_with_metrics
 
     return metrics_for_all_problems
@@ -262,11 +290,11 @@ def search_metrics_by_modalities(graph, input_modality, output_modality):
     for problem in problems:
         models = get_models_for_problem(graph, problem)
         models_with_metrics = {}
-        
+
         for model,downloads in models:
             metrics = find_metrics_by_model(graph, model)
             models_with_metrics[model] = metrics
-        
+
         metrics_for_all_problems[problem] = models_with_metrics
 
     return metrics_for_all_problems
@@ -295,11 +323,11 @@ def print_model_details(details):
 def print_metrics_for_problem(metrics_for_all_problems):
     for problem, metrics_list in metrics_for_all_problems.items():
         print(f"Problem: {problem}")
-        unique_metrics = set()  
+        unique_metrics = set()
         for model, metrics in metrics_list.items():
             for metric in metrics:
                 unique_metrics.add(metric)
-        
+
         for metric in unique_metrics:
             print(f"  Metric: {metric}")
 
@@ -310,7 +338,7 @@ if __name__ == "__main__":
     cover_tags = get_cover_tags(graph)
     print_results(cover_tags, "cover tags")
 
-    # Get Problem List 
+    # Get Problem List
     problems = get_problems(graph)
     print_results(problems, "problems")
 
@@ -335,7 +363,7 @@ if __name__ == "__main__":
     # Get Metrics for Modality
     input_modality = "Image"
     output_modality = "Label"
-   
+
     metrics = search_metrics_by_input_modalities(graph, input_modality, output_modality)
     print_metrics_for_problem(metrics)
 
