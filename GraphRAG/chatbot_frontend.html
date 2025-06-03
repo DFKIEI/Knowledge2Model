@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+
+        #chatbox {
+            width: 50%;
+            height: 800px;
+            border: 1px solid #ccc;
+            background: white;
+            overflow-y: auto;
+            margin: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 10px;
+            clear: both;
+        }
+
+        .user {
+            background: #d1e7dd;
+            align-self: flex-end;
+            text-align: right;
+        }
+
+        .bot {
+            background: #f8d7da;
+            align-self: flex-start;
+            text-align: left;
+        }
+
+        #inputArea {
+            margin-top: 10px;
+        }
+
+        #userInput {
+            width: 300px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>ML Landscape Search Chatbot</h2>
+    <div id="chatbox"></div>
+    <div id="inputArea">
+        <input type="text" id="userInput" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        function sendMessage() {
+            let userInput = document.getElementById("userInput").value.trim();
+            if (!userInput) return;
+
+            let chatbox = document.getElementById("chatbox");
+
+            // Append user message
+            let userMessage = `<div class="message user"><strong>You:</strong> ${userInput}</div>`;
+            chatbox.innerHTML += userMessage;
+            chatbox.scrollTop = chatbox.scrollHeight;
+
+            // Create a placeholder for the bot's typing message (but don't show it yet)
+            let typingMessage = document.createElement("div");
+            typingMessage.className = "message bot";
+            typingMessage.id = "typingIndicator";
+            typingMessage.innerHTML = `<strong>Bot:</strong> <em class="typing">....</em>`;
+
+            // Show typing message after a 1-second delay
+            let typingTimeout = setTimeout(() => {
+                chatbox.appendChild(typingMessage);
+                chatbox.scrollTop = chatbox.scrollHeight;
+            }, 2000);
+
+            fetch("http://127.0.0.1:5000/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: userInput })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    clearTimeout(typingTimeout); // Cancel typing message if response is fast
+                    typingMessage.remove(); // Remove typing indicator
+
+                    // Show bot's response with line breaks
+                    let botMessage = `<div class="message bot"><strong>Bot:</strong> ${data.response.replace(/\n/g, "<br>")}</div>`;
+                    chatbox.innerHTML += botMessage;
+                    chatbox.scrollTop = chatbox.scrollHeight;
+                });
+
+            document.getElementById("userInput").value = "";
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+
+</html>

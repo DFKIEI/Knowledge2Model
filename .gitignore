@@ -171,3 +171,4 @@ cython_debug/
 .venv
 # /Hugging2KG/huggingface2_old.db
 # /Hugging2KG/huggingface2.db
+backup
