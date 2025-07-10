@@ -1,21 +1,69 @@
-db2annoy.py STAGE 1 preprocessing. Generate the model_texts.npy, model_embeddings.npy and model_index.ann
-db2neo4j.py: Convert SQL Knowledge Graph to Neo4j, uses similiar approach as db2rdf, with different URI representation
+## README
 
-chatbot_backend.py: Flask backend, implementing the whole pipeline of 2 stage GRAG (with conversation history, not sure if necessary for the framework) (uses the LLM through LMStudio server, but can be implemented the same way with other LLm services)
-chatbot_frontend.py: HTML to have the chat as test
+This repository contains scripts and tools for processing, indexing, and querying a SQL-based knowledge graph, plus a simple chat interface. Below is an overview of each component and instructions for exporting/importing the Neo4j database.
 
-semantic_search.py: File to test the Stage 1 search on the trained embedding space. THis is the prestep to GRAG, only the indexing search without true search on the Neo4j database
+---
 
-neo4j.dump: database to import
+## Scripts
 
-EXPORT Neo4j file:
-neo4j-admin database dump neo4j --to-path="..."
+### 1. `db2annoy.py`
+**Stage 1 Preprocessing**
+Generate the following files for semantic search:
+- `model_metadata.json`
+- `model_index.ann`
 
-Import Neo4j file:
-neo4j-admin database load neo4j --from-path=".../neo4j.dump" --overwrite-destination=true
+### 2. `db2neo4j.py`
+**Stage 2 Neo4j**
+SQL → Neo4j Conversion
 
+Convert the SQL knowledge graph into a Neo4j database using URI-style labels (similar to db2rdf).
 
-local Neo4j credentials (if required):
-NEO4J_URI = "bolt://localhost:7687"
-NEO4J_USER = "neo4j"
-NEO4J_PASSWORD = "12345678"
+### 3. `semantic_search.py`
+Stage 1 Search Test
+
+Load the Annoy index and perform nearest-neighbor queries on the embedding space (pre-step to GRAG; no Neo4j interaction).
+
+### 4. `chatbot_backend.py`
+Flask Backend
+
+Implements the full two-stage GRAG pipeline (semantic search + graph queries), with optional conversation history. Connects to an LLM via LMStudio or any HTTP-based service.
+
+### 5. `chatbot_frontend.py`
+HTML Frontend
+
+Minimal chat interface for testing the backend.
+
+## Neo4j Database Dump & Restore
+### Export (Dump)
+
+```bash
+sudo neo4j-admin dump system \
+  --to-path=<path>/Knowledge2Model/GraphRAG/backup_neo4j
+
+sudo neo4j-admin dump neo4j \
+  --to-path=<path>/Knowledge2Model/GraphRAG/backup_neo4j
+```
+
+### Import (Load)
+
+```bash
+sudo neo4j-admin database load system \
+  --from-path=<path>/Knowledge2Model/GraphRAG/backup_neo4j \
+  --overwrite-destination=true
+
+sudo neo4j-admin database load neo4j \
+  --from-path=<path>/Knowledge2Model/GraphRAG/backup_neo4j \
+  --overwrite-destination=true
+
+sudo chown -R neo4j:neo4j /var/lib/neo4j/data
+```
+
+### Neo4j Credentials
+
+Set environment variables or update your .env file:
+
+```bash
+NEO4J_URI="bolt://localhost:7687"
+NEO4J_USER="neo4j"
+NEO4J_PASSWORD="12345678"
+```

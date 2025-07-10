@@ -16,40 +16,31 @@ texts = []
 metadata = []  # Store category information
 
 for row in rows:
-    model_name = row[1]
-    problem = row[2]
-    tags = row[3]
-    library = row[5]
-    metrics = row[11]
+    model_id = row[0]
+    model_name = row[1] or ""
+    problem = row[2] or ""
+    tags = row[3] or ""
+    library = row[5] or ""
+    metrics = row[11] or ""
 
-    if model_name:
-        texts.append(model_name)
-        metadata.append(("Model", model_name))
+    combined = " | ".join(filter(None, [
+        f"Name: {model_name}",
+        f"Problem: {problem}",
+        f"Tags: {tags}",
+        f"Library: {library}",
+        f"Metrics: {metrics}"
+    ]))
 
-    if problem:
-        texts.append(problem)
-        metadata.append(("Problem", problem))
-
-    if tags:
-        texts.append(tags)
-        metadata.append(("Tags", tags))
-
-    if library:
-        texts.append(library)
-        metadata.append(("Library", library))
-
-    if metrics:
-        for metric_str in metrics.split(','):
-            texts.append(metric_str.strip())
-            metadata.append(("Metric", metric_str.strip()))
+    texts.append(combined)
+    metadata.append({"id": model_id, "name": model_name})
 
 # Save texts and metadata
-np.save('model_texts.npy', np.array(texts))
-with open('model_metadata.json', 'w') as f:
+np.save('embedding/model_texts.npy', np.array(texts))
+with open('embedding/model_metadata.json', 'w') as f:
     json.dump(metadata, f)
 
 # Load texts from .npy
-texts = np.load('model_texts.npy', allow_pickle=True)
+texts = np.load('embedding/model_texts.npy', allow_pickle=True)
 
 # Create sentence embeddings
 sentence_model = SentenceTransformer('BAAI/bge-large-en')
@@ -61,14 +52,14 @@ embeddings = np.array([
 ])
 
 # Save embeddings
-np.save('model_embeddings.npy', embeddings)
+np.save('embedding/model_embeddings.npy', embeddings)
 
 # Load embeddings
-embeddings = np.load('model_embeddings.npy')
+embeddings = np.load('embedding/model_embeddings.npy')
 
 # Create Annoy index
 dimension = embeddings.shape[1]
-print(dimension)
+print("Dimension for annoy is: ", dimension)    # debug
 annoy_index = AnnoyIndex(dimension, 'angular')
 
 # Add items to Annoy index
@@ -76,31 +67,26 @@ for i, embedding in enumerate(embeddings):
     annoy_index.add_item(i, embedding)
 
 # Build and save the index
-annoy_index.build(10)
-annoy_index.save('models_index.ann')
+annoy_index.build(50)
+annoy_index.save('embedding/models_index.ann')
 
 # Load metadata
-with open('model_metadata.json', 'r') as f:
+with open('embedding/model_metadata.json', 'r') as f:
     metadata = json.load(f)
 
 # Reload index and texts
 annoy_index = AnnoyIndex(dimension, 'angular')
-annoy_index.load('models_index.ann')
-texts = np.load('model_texts.npy', allow_pickle=True)
+annoy_index.load('embedding/models_index.ann')
+texts = np.load('embedding/model_texts.npy', allow_pickle=True)
 
 # Search function with optional category filter
-def search_semantic(query, top_k=5, category=None):
+def search_semantic(query, top_k=100):
     query_embedding = sentence_model.encode([query], convert_to_tensor=True).cpu().detach().numpy()[0]
     nearest_neighbors = annoy_index.get_nns_by_vector(query_embedding, top_k)
 
     results = []
     for idx in nearest_neighbors:
-        text = texts[idx]
-        cat, original_text = metadata[idx]  # Retrieve metadata
-        
-        # Filter by category if specified
-        if category is None or cat.lower() == category.lower():
-            results.append({"category": cat, "text": original_text})
+        results.append(metadata[idx])
 
     return results
 
@@ -109,16 +95,16 @@ print("\n🔍 General Search:")
 query = "classification models with high accuracy"
 results = search_semantic(query)
 for res in results:
-    print(f"{res['category']}: {res['text']}")
+    print(f"{res['id']}: {res['name']}")
 
 print("\n🔍 Category-Specific Search (Problem):")
 query = "text classification"
-results = search_semantic(query, category="Problem")
+results = search_semantic(query)
 for res in results:
-    print(f"{res['category']}: {res['text']}")
+    print(f"{res['id']}: {res['name']}")
 
 print("\n🔍 Category-Specific Search (Model):")
 query = "Llama-3.2-1B-imdb"
-results = search_semantic(query, category="Model")
+results = search_semantic(query)
 for res in results:
-    print(f"{res['category']}: {res['text']}")
+    print(f"{res['id']}: {res['name']}")
