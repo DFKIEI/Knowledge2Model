@@ -1,5 +1,6 @@
 import sqlite3
 import json
+from urllib import response
 import numpy as np
 from tqdm import tqdm
 from flask import Flask, request, jsonify
@@ -7,60 +8,68 @@ from flask_cors import CORS
 from sentence_transformers import SentenceTransformer
 from annoy import AnnoyIndex
 from neo4j import GraphDatabase
-# from openai import OpenAI
-from ollama import Client
+from openai import OpenAI
+# from ollama import Client
 
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
 
 # Load precomputed embeddings and metadata
-with open('./model_metadata.json', 'r') as f:
+with open('./GraphRAG/embedding/model_metadata.json', 'r') as f:
     metadata = json.load(f)
 
 annoy_index = AnnoyIndex(1024, 'angular')
-annoy_index.load('./models_index.ann')
-texts = np.load('./model_texts.npy', allow_pickle=True)
+annoy_index.load('./GraphRAG/embedding/models_index.ann')
+texts = np.load('./GraphRAG/embedding/model_texts.npy', allow_pickle=True)
 
 # Load sentence transformer for semantic search
-sentence_model = SentenceTransformer('BAAI/bge-large-en', device='cuda')
+sentence_model = SentenceTransformer('BAAI/bge-large-en', device='cpu')
 
 # Neo4j Configuration
 NEO4J_URI = "bolt://localhost:7687"
 NEO4J_USER = "neo4j"
 NEO4J_PASSWORD = "12345678"
 
-MODEL = "llama3"
+MODEL = "mistral:7b-instruct-q4_0"
 
 # Connect to Neo4j
 neo4j_driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
 # LLM Client (e.g., OpenAI or Local LM Studio)
-# client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
-client = Client(host='http://localhost:11434')
+client = OpenAI(base_url="http://localhost:1234/v1", api_key="lmstudio")
+# client = Client(host='http://localhost:11434')
 
 # In-memory conversation history
 conversation_history = []
 
+# def chatcompletion(model, messages, classify=False):
+#     # global conversation_history  # Ensure we modify the global variable
+
+#     # # Filter out 'system' messages
+#     # conversation_history = [message for message in conversation_history if message['role'] != 'system']
+
+#     # if not classify:
+#     #     conversation_history.extend(messages)  # Extend history with new messages
+#     #     completion = client.chat(
+#     #         model=model,
+#     #         messages=conversation_history,
+#     #     )
+#     # else:
+#     completion = client.chat(
+#         model=model,
+#         messages=messages,  # Use only new messages for classification
+#     )
+
+#     return completion['message']['content'].strip()
+
 def chatcompletion(model, messages, classify=False):
-    # global conversation_history  # Ensure we modify the global variable
-
-    # # Filter out 'system' messages
-    # conversation_history = [message for message in conversation_history if message['role'] != 'system']
-
-    # if not classify:
-    #     conversation_history.extend(messages)  # Extend history with new messages
-    #     completion = client.chat(
-    #         model=model,
-    #         messages=conversation_history,
-    #     )
-    # else:
-    completion = client.chat(
+    response = client.chat.completions.create(
         model=model,
-        messages=messages,  # Use only new messages for classification
+        messages=messages
     )
-
-    return completion['message']['content'].strip()
+    # openai v1 returns an object → extract text
+    return response.choices[0].message.content.strip()
 
 # class LMStudioClient:
 
@@ -130,7 +139,13 @@ def generate_natural_answer(knowledge, user_question):
         {"role": "user", "content": final_prompt}
     ]
 
-    return client.chat(model=MODEL, messages=messages)["message"]["content"]
+    # return client.chat(model=MODEL, messages=messages)["message"]["content"]
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=messages,
+    )
+    return response.choices[0].message.content.strip()
+
 
 def classify_input(user_input):
     """Classifies user input into 'conversation' or 'hybrid' (for search)."""

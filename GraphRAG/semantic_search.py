@@ -5,13 +5,13 @@ from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 from annoy import AnnoyIndex
 
-with open('model_metadata.json', 'r') as f:
+with open('./GraphRAG/embedding/model_metadata.json', 'r') as f:
     metadata = json.load(f)
 
 # Reload index and texts
 annoy_index = AnnoyIndex(1024, 'angular')
-annoy_index.load('models_index.ann')
-texts = np.load('model_texts.npy', allow_pickle=True)
+annoy_index.load('./GraphRAG/embedding/models_index.ann')
+texts = np.load('./GraphRAG/embedding/model_texts.npy', allow_pickle=True)
 
 sentence_model = SentenceTransformer('BAAI/bge-large-en')
 

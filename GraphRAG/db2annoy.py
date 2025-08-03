@@ -6,7 +6,7 @@ from sentence_transformers import SentenceTransformer
 from annoy import AnnoyIndex
 
 # Database connection
-conn = sqlite3.connect('./Hugging2KG/huggingface2.db')
+conn = sqlite3.connect('../Hugging2KG/huggingface2.db')
 cursor = conn.cursor()
 cursor.execute("SELECT * FROM Models")
 rows = cursor.fetchall()
