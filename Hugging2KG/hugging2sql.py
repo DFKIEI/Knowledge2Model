@@ -56,9 +56,10 @@ for tag in tqdm(tags, desc="Processing pipeline tags"):
         # Process models directly from generator
         model_count = 0
         for model in models:
+           
             try:
                 # Extract model information
-                model_id = getattr(model, 'modelId', None)
+                model_id = getattr(model, '_id', None)
                 model_name = getattr(model, 'modelId', None)
                 tags_list = getattr(model, 'tags', []) or []
                 tags_json = json.dumps(tags_list, ensure_ascii=False)
