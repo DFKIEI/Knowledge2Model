@@ -1,7 +1,8 @@
 import os
 import sys
 
-os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"      # hide HF's own bars
+os.environ.setdefault("HF_HUB_ENABLE_HF_TRANSFER", "1")
+#os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"      # hide HF's own bars
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1" # hide symlink warning
 
 import sqlite3
@@ -12,7 +13,6 @@ from huggingface_hub.utils import RepositoryNotFoundError, HfHubHTTPError
 from dotenv import load_dotenv
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
-
 from huggingface_hub import logging
 logging.set_verbosity_error()
 
@@ -28,6 +28,8 @@ else:
 
 # Connect to the SQLite database
 conn = sqlite3.connect('./Hugging2KG/huggingface2.db')
+conn.execute("PRAGMA journal_mode=WAL;")
+conn.execute("PRAGMA synchronous=NORMAL;")
 cursor = conn.cursor()
 
 # Check if model_card column exists before adding it 
@@ -83,43 +85,45 @@ access_denied = 0  # Count of access denied errors
 rate_limit_wait = 1  # Start with 1 second wait after rate limit
 
 # Create progress bar with better formatting
-pbar = tqdm(rows, desc="Fetching model cards", ncols=100, file=sys.stdout, dynamic_ncols=True, mininterval=0.5, ascii=True)
+pbar = tqdm(
+    total=len(rows),
+    desc="Fetching model cards",
+    ncols=100,
+    dynamic_ncols=True,
+    mininterval=0.1,   # refresh faster
+    miniters=1,
+    ascii=True,
+    leave=True
+)
 
-for idx, (model_id, model_name) in enumerate(pbar):
+for idx, (model_id, model_name) in enumerate(rows, start=1):
     try:
-        # Update progress bar postfix with counts
-        pbar.set_postfix({'S': successful, 'F': failed})
-
         # Fetch the model card
         model_card = fetch_model_card(model_name)
-        
+
         if model_card:
-            # Update the database with the model card 
             cursor.execute("UPDATE Models SET model_card = ? WHERE model_id = ?", (model_card, model_id))
             successful += 1
-            
-            # Reset rate limit wait on success
             rate_limit_wait = max(1, rate_limit_wait * 0.9)
         else:
             failed += 1
-        
-        # Commit every 100 records to avoid losing progress 
-        if (idx + 1) % 100 == 0:
-            conn.commit()
-            tqdm.write(f"Progress: {idx + 1}/{len(rows)} - Successful: {successful}, Failed: {failed}")
 
-        time.sleep(0.1)  # Small delay to be respectful
+
+
+        # Commit every 500 records
+        if (idx % 500) == 0:
+            conn.commit()
+            tqdm.write(f"Progress: {idx}/{len(rows)} - Successful: {successful}, Failed: {failed}")
+
+        time.sleep(0.1)  
 
     except HfHubHTTPError as e:
         if e.response.status_code == 429:
-            # Check if server sent a specific wait time
             ra = e.response.headers.get("Retry-After")
             wait = int(ra) if ra and ra.isdigit() else rate_limit_wait
-            #tqdm.write(f"429 at model {idx+1}/{len(rows)}. Waiting {wait}s…")
-            time.sleep(wait) 
-            rate_limit_wait = min(60, rate_limit_wait * 2)  # Exponential backoff, max 60s
-            
-            # Retry the same model
+            time.sleep(wait)
+            rate_limit_wait = min(60, rate_limit_wait * 2)
+
             try:
                 model_card = fetch_model_card(model_name)
                 if model_card:
@@ -129,19 +133,19 @@ for idx, (model_id, model_name) in enumerate(pbar):
                     failed += 1
             except:
                 failed += 1
-            continue
         elif e.response.status_code == 403:
-            # model is private
             access_denied += 1
         else:
             failed += 1
-            
+
     except Exception as e:
         tqdm.write(f"Error processing {model_name}: {e}")
         failed += 1
-        continue
 
-pbar.close()
+    finally:
+        # Always advance the bar exactly once per row
+        pbar.update(1)
+
 
 # Final commit
 conn.commit()
@@ -160,4 +164,5 @@ print(f"\nDatabase statistics:")
 print(f"Total models: {total_models}")
 print(f"Models with cards: {total_with_cards}")
 
+conn.execute("PRAGMA wal_checkpoint(TRUNCATE);")
 conn.close()
