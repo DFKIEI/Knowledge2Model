@@ -13,7 +13,7 @@ This repository contains scripts and tools for processing, indexing, and queryin
    - Reads models from SQLite database
    - Generates semantic embeddings using sentence transformers
    - Builds and saves Annoy index for fast similarity search
-   - **Outputs**: `model_metadata.json`, `model_embeddings.npy`, `models_index.ann`
+   - **Outputs**: `model_metadata.json`, `model_embeddings.npy`, `models_index.ann`, `model_texts.npy`.
 
 #### **Stage 2: Graph Database Setup**
 2. **`db2neo4j.py`** - SQL → Neo4j Conversion
@@ -51,11 +51,28 @@ This repository contains scripts and tools for processing, indexing, and queryin
 2. python db2neo4j.py      # Populate Neo4j
 ```
 
+---
+
+## Important Notes
+
+### Large Generated Files
+
+The following files are **generated** by `db2annoy.py` and are **not included in the repository** due to their size:
+
+| File | Size | Purpose |
+|------|------|---------|
+| `model_embeddings.npy` | ~127 MB | Dense vector embeddings for semantic search |
+| `model_texts.npy` | ~828 MB | Original concatenated text from models |
+| `models_index.ann` | ~151 MB | Annoy index structure for fast retrieval |
+| `model_metadata.json` | Small | Model IDs and metadata for results |
+
+
 ## Neo4j Database Dump & Restore
 ### Export (Dump)
 
 ```bash
-sudo neo4j-admin dump system \
+# Replace the backup_neo4j with the updated backup folder name
+sudo neo4j-admin dump system \         
   --to-path=<path>/Knowledge2Model/GraphRAG/backup_neo4j
 
 sudo neo4j-admin dump neo4j \
@@ -65,6 +82,7 @@ sudo neo4j-admin dump neo4j \
 ### Import (Load)
 
 ```bash
+# Replace the backup_neo4j with the updated backup folder name
 sudo neo4j-admin database load system \
   --from-path=<path>/Knowledge2Model/GraphRAG/backup_neo4j \
   --overwrite-destination=true
