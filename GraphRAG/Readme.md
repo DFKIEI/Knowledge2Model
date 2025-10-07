@@ -19,8 +19,7 @@ This repository contains scripts and tools for processing, indexing, and queryin
 2. **`db2neo4j.py`** - SQL → Neo4j Conversion
    - Transfers model data from SQLite to Neo4j graph database
    - Creates nodes (Model, Problem, Library, Tag, Metric, HealthStatus)
-   - Establishes relationships between entities
-   - Enables graph-based queries and traversals
+
 
 #### **Stage 3: Backend Service**
 3. **`chatbot_backend.py`** - Flask Backend (RAG Pipeline)
@@ -28,7 +27,6 @@ This repository contains scripts and tools for processing, indexing, and queryin
      1. Semantic search using Annoy index (fast similarity matching)
      2. Graph queries using Neo4j (relationship-based filtering)
    - Connects to LLM (LMStudio/Ollama) for natural language generation
-   - Provides `/chat` API endpoint
 
 #### **Stage 4: User Interface**
 4. **`chatbot_frontend.html`** - Web Interface
@@ -42,7 +40,6 @@ This repository contains scripts and tools for processing, indexing, and queryin
 - **`semantic_search.py`** - Standalone Search Tester
   - Tests the Annoy index independently without running the full pipeline
   - Useful for debugging semantic search without Neo4j or LLM
-  - Not part of the main flow - run when you want to verify search quality
 
 ---
 
