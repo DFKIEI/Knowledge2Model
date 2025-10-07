@@ -6,32 +6,53 @@ This repository contains scripts and tools for processing, indexing, and queryin
 
 ## Scripts
 
-### 1. `db2annoy.py`
-**Stage 1 Preprocessing**
-Generate the following files for semantic search:
-- `model_metadata.json`
-- `model_index.ann`
+### Pipeline Flow
 
-### 2. `db2neo4j.py`
-**Stage 2 Neo4j**
-SQL → Neo4j Conversion
+#### **Stage 1: Data Preparation**
+1. **`db2annoy.py`** - Preprocessing
+   - Reads models from SQLite database
+   - Generates semantic embeddings using sentence transformers
+   - Builds and saves Annoy index for fast similarity search
+   - **Outputs**: `model_metadata.json`, `model_embeddings.npy`, `models_index.ann`
 
-Convert the SQL knowledge graph into a Neo4j database using URI-style labels (similar to db2rdf).
+#### **Stage 2: Graph Database Setup**
+2. **`db2neo4j.py`** - SQL → Neo4j Conversion
+   - Transfers model data from SQLite to Neo4j graph database
+   - Creates nodes (Model, Problem, Library, Tag, Metric, HealthStatus)
+   - Establishes relationships between entities
+   - Enables graph-based queries and traversals
 
-### 3. `semantic_search.py`
-Stage 1 Search Test
+#### **Stage 3: Backend Service**
+3. **`chatbot_backend.py`** - Flask Backend (RAG Pipeline)
+   - Implements two-stage retrieval:
+     1. Semantic search using Annoy index (fast similarity matching)
+     2. Graph queries using Neo4j (relationship-based filtering)
+   - Connects to LLM (LMStudio/Ollama) for natural language generation
+   - Provides `/chat` API endpoint
 
-Load the Annoy index and perform nearest-neighbor queries on the embedding space (pre-step to GRAG; no Neo4j interaction).
+#### **Stage 4: User Interface**
+4. **`chatbot_frontend.html`** - Web Interface
+   - Minimal chat UI for interacting with the backend
+   - Sends queries to Flask backend and displays responses
 
-### 4. `chatbot_backend.py`
-Flask Backend
+---
 
-Implements the full two-stage GRAG pipeline (semantic search + graph queries), with optional conversation history. Connects to an LLM via LMStudio or any HTTP-based service.
+### Testing & Debugging Tools
 
-### 5. `chatbot_frontend.py`
-HTML Frontend
+- **`semantic_search.py`** - Standalone Search Tester
+  - Tests the Annoy index independently without running the full pipeline
+  - Useful for debugging semantic search without Neo4j or LLM
+  - Not part of the main flow - run when you want to verify search quality
 
-Minimal chat interface for testing the backend.
+---
+
+## Workflow Summary
+
+**Setup (run once or when data changes):**
+```bash
+1. python db2annoy.py      # Build embeddings
+2. python db2neo4j.py      # Populate Neo4j
+```
 
 ## Neo4j Database Dump & Restore
 ### Export (Dump)
