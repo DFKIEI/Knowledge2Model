@@ -4,9 +4,14 @@ import numpy as np
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 from annoy import AnnoyIndex
+import torch
+
+#Use GPU
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(f"Using device: {device}")
 
 # Database connection
-conn = sqlite3.connect('../Hugging2KG/huggingface2.db')
+conn = sqlite3.connect('../GraphRAG/huggingface2.db')
 cursor = conn.cursor()
 cursor.execute("SELECT * FROM Models")
 rows = cursor.fetchall()
@@ -19,20 +24,35 @@ for row in rows:
     model_id = row[0]
     model_name = row[1] or ""
     problem = row[2] or ""
-    tags = row[3] or ""
+    #tags = row[3] or ""
     library = row[5] or ""
+    model_card_tags = row[10] or ""
     metrics = row[11] or ""
+    health_status = row[12] or ""
+    last_checked = row[13] or ""
+    health_error = row[14] or ""
+
 
     combined = " | ".join(filter(None, [
         f"Name: {model_name}",
         f"Problem: {problem}",
-        f"Tags: {tags}",
+        f"Tags: {model_card_tags}",
         f"Library: {library}",
-        f"Metrics: {metrics}"
+        f"Metrics: {metrics}",
+        f"Health Status: {health_status}",
     ]))
 
     texts.append(combined)
-    metadata.append({"id": model_id, "name": model_name})
+    metadata.append({
+        "id": model_id,
+        "name": model_name,
+        "problem": problem,
+        "library": library,
+        "metrics": metrics,
+        "health_status": health_status,
+        "last_checked": last_checked,
+        "health_error": health_error
+    })
 
 # Save texts and metadata
 np.save('embedding/model_texts.npy', np.array(texts))
@@ -43,7 +63,7 @@ with open('embedding/model_metadata.json', 'w') as f:
 texts = np.load('embedding/model_texts.npy', allow_pickle=True)
 
 # Create sentence embeddings
-sentence_model = SentenceTransformer('BAAI/bge-large-en')
+sentence_model = SentenceTransformer('BAAI/bge-large-en', device=device)
 
 # Use tqdm for progress bar
 embeddings = np.array([
@@ -91,20 +111,28 @@ def search_semantic(query, top_k=100):
     return results
 
 # Example searches
-print("\n🔍 General Search:")
+print("\n General Search:")
 query = "classification models with high accuracy"
 results = search_semantic(query)
 for res in results:
     print(f"{res['id']}: {res['name']}")
 
-print("\n🔍 Category-Specific Search (Problem):")
+print("\n Category-Specific Search (Problem):")
 query = "text classification"
 results = search_semantic(query)
 for res in results:
     print(f"{res['id']}: {res['name']}")
 
-print("\n🔍 Category-Specific Search (Model):")
+print("\n Category-Specific Search (Model):")
 query = "Llama-3.2-1B-imdb"
 results = search_semantic(query)
 for res in results:
     print(f"{res['id']}: {res['name']}")
+
+
+print("\n Health Status Test:")
+query = "working text classification models"
+results = search_semantic(query, top_k=5)
+for res in results:
+    health = res.get('health_status', 'No data')
+    print(f"{res['id']}: {res['name']} - Health: {health}")
