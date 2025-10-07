@@ -11,8 +11,7 @@ Crawl HuggingFace API, extract model metadata using LLM, and prepare data for Kn
 1. **`hugging2sql.py`** - API Crawler
    - Crawls HuggingFace API for ML models
    - Stores raw model data in SQLite database
-   - **Output**: `huggingface2.db` (~32,000 models)
-
+   - **Output**: `huggingface2.db`
 #### **Stage 2: Model Card Extraction**
 2. **`extract_model_cards.py`** - README Fetcher
    - Fetches README.md (model cards) from HuggingFace for each model
