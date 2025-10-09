@@ -12,7 +12,7 @@ NEO4J_PASSWORD = "12345678"
 driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
 # Connect to SQLite
-conn = sqlite3.connect('./Hugging2KG/huggingface2.db')
+conn = sqlite3.connect('../GraphRAG/huggingface2.db')
 cursor = conn.cursor()
 cursor.execute("SELECT * FROM Models")
 rows = cursor.fetchall()
@@ -31,13 +31,16 @@ def sanitize_string(value):
     return value  # Return as is if it's not a string
 
 # Define function to insert data
-def insert_model(tx, model_id, model_name, problem, coverTag, library, downloads, likes, lastModified, metrics, tags):
+def insert_model(tx, model_id, model_name, problem, coverTag, library, downloads, likes, lastModified, metrics, model_card_tags, health_status, last_checked, health_error):
     # Sanitize all string parameters before passing them to the query
     model_name = sanitize_string(model_name)
     problem = sanitize_string(problem)
     coverTag = sanitize_string(coverTag)
     library = sanitize_string(library)
-    tags = [sanitize_string(tag) for tag in tags]  # Handle list of tags
+    health_status = sanitize_string(health_status)
+    health_error = sanitize_string(health_error)
+    last_checked = sanitize_string(last_checked)
+    model_card_tags = [sanitize_string(tag) for tag in model_card_tags]  # Handle list of tags
     metrics = [{
         'name': sanitize_string(metric['name']),
         'dataset': sanitize_string(metric['dataset']),
@@ -46,7 +49,8 @@ def insert_model(tx, model_id, model_name, problem, coverTag, library, downloads
     
     query = """
     MERGE (m:Model {id: $model_id})
-    SET m.name = $model_name, m.downloads = $downloads, m.likes = $likes, m.lastModified = $lastModified
+    SET m.name = $model_name, m.downloads = $downloads, m.likes = $likes, m.lastModified = $lastModified,
+        m.health_status = $health_status, m.last_checked = $last_checked, m.health_error = $health_error
 
     MERGE (p:Problem {name: $problem})
     MERGE (m)-[:HAS_PROBLEM]->(p)
@@ -56,8 +60,12 @@ def insert_model(tx, model_id, model_name, problem, coverTag, library, downloads
 
     MERGE (l:Library {name: $library})
     MERGE (m)-[:USES_LIBRARY]->(l)
+    
+    MERGE (h:HealthStatus {status: $health_status})
+    SET h.last_checked = $last_checked, h.error_message = $health_error
+    MERGE (m)-[:HAS_HEALTH_STATUS]->(h)
 
-    FOREACH (tag IN $tags |
+    FOREACH (tag IN $model_card_tags |
         MERGE (t:Tag {name: tag})
         MERGE (m)-[:HAS_TAG]->(t)
     )
@@ -72,21 +80,34 @@ def insert_model(tx, model_id, model_name, problem, coverTag, library, downloads
     )
     """
     tx.run(query, model_id=model_id, model_name=model_name, downloads=downloads, likes=likes, lastModified=lastModified,
-           problem=problem, coverTag=coverTag, library=library, tags=tags, metrics=metrics)
-
+           problem=problem, coverTag=coverTag, library=library, model_card_tags=model_card_tags, metrics=metrics,
+           health_status=health_status, last_checked=last_checked, health_error=health_error)
+    
 # Insert data into Neo4j with tqdm progress bar
 with driver.session() as session:
     total_rows = len(rows)
 
     # Initialize tqdm progress bar
     for idx, row in tqdm(enumerate(rows), total=total_rows, desc="Inserting models", unit="row"):
-        model_id, model_name, problem, tags, coverTag, library, downloads, likes, lastModified, _, _, metrics = row
+        model_id, model_name, problem, tags, coverTag, library, downloads, likes, lastModified, model_card, model_card_tags, metrics, health_status, last_checked, health_error = row
 
-        # Parse tags
-        try:
-            tags_list = ast.literal_eval(tags) if isinstance(tags, str) else []
-        except:
-            tags_list = []
+        # # Parse tags
+        # try:
+        #     tags_list = ast.literal_eval(tags) if isinstance(tags, str) else []
+        # except:
+        #     tags_list = []
+        # Parse model_card_tags
+        # Handle health-related fields with defaults
+        health_status = health_status or "UNKNOWN"
+        last_checked = last_checked or ""
+        health_error = health_error or ""
+
+        # Parse model_card_tags
+        
+        if isinstance(model_card_tags, str) and model_card_tags.strip():
+            model_card_tags_list = [tag.strip() for tag in model_card_tags.split(',') if tag.strip()]
+        else:
+            model_card_tags_list = ["untagged"]
 
         # Parse metrics
         metric_list = []
@@ -109,7 +130,8 @@ with driver.session() as session:
                     continue
 
         # Insert into Neo4j
-        session.execute_write(insert_model, model_id, model_name, problem, coverTag, library, downloads, likes, lastModified, metric_list, tags_list)
+        session.execute_write(insert_model, model_id, model_name, problem, coverTag, library, downloads, likes, 
+                            lastModified, metric_list, model_card_tags_list, health_status, last_checked, health_error)
 
 driver.close()
 conn.close()

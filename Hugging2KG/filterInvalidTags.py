@@ -3,7 +3,7 @@ import re
 from tqdm import tqdm
 import json
 
-conn = sqlite3.connect('.//huggingface2.db')
+conn = sqlite3.connect('./Hugging2KG/huggingface2.db')
 cursor = conn.cursor()
 
 
@@ -16,11 +16,25 @@ valid_tag_pattern = re.compile(
 
 
 def filter_tags(tag_list):
-    # Remove tags with 'none' or line breaks (typical errors of the prompt), and invalid tags
-    valid_tags = [tag.strip() for tag in tag_list if
-                  'none' not in tag.lower() and '\n' not in tag and valid_tag_pattern.match(tag.strip())]
+    valid_tags = []
+    for tag in tag_list:
+        # Replace line breaks with commas
+        cleaned_tag = tag.strip().replace('\n', ', ').replace('\r', ', ')
+        
+        # Split into individual tags
+        individual_tags = cleaned_tag.split(',')
+        
+        # Check each tag individually
+        for individual_tag in individual_tags:
+            individual_tag = individual_tag.strip()
+            
+            # Check each tag separately
+            if (individual_tag and 
+                'none' not in individual_tag.lower() and 
+                valid_tag_pattern.match(individual_tag)):
+                valid_tags.append(individual_tag)
+    
     return ', '.join(valid_tags)
-
 
 for model_id, tags, metrics in tqdm(rows, desc="tags", unit="model"):
     try:
