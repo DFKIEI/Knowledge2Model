@@ -16,10 +16,10 @@ os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 
 
 # HuggingFace token
-HF_TOKEN = "" # Add your token here
+HF_TOKEN = ""# Add your token here
 
 # Database path
-DATABASE_PATH = '../ModelStatus/huggingface2.db'
+DATABASE_PATH = r"D:\GraphR\ModelStatus\huggingface2.db"
 
 # Test configuration
 TEST_CONFIG = {
@@ -29,7 +29,7 @@ TEST_CONFIG = {
     "min_downloads": 50,
     "causal_prompt": "The future of artificial intelligence is",
     "seq2seq_prompt": "Summarize: Artificial intelligence is transforming technology.",
-    "max_repo_size_gb": 60.0,
+    "max_repo_size_gb": 50.0,
 }
 
 
@@ -181,47 +181,65 @@ def load_model_and_tokenizer(model_name, cache_dir):
     return model, tokenizer, model_type
 
 def test_model_generation(model, tokenizer, model_type):
-    """Test model generation based on model type."""
-    
+    """
+    Runs a tiny generation smoke test with safe PAD/EOS handling for causal LMs.
+    Returns: (success: bool, message: str)
+    """
+    use_cuda = torch.cuda.is_available()
+    device_arg = 0 if use_cuda else -1
+
     if model_type == "seq2seq":
+        # Seq2seq models already define PAD/EOS; no special handling needed.
         generator = pipeline(
-            "text2text-generation", 
-            model=model, 
+            "text2text-generation",
+            model=model,
             tokenizer=tokenizer,
-            device=0 if torch.cuda.is_available() else -1
+            device=device_arg
         )
         prompt = TEST_CONFIG["seq2seq_prompt"]
+        out = generator(prompt, max_new_tokens=16, do_sample=False)
+        ok = bool(out and out[0].get("generated_text", "").strip())
+        return (True, f"Model type: {model_type}") if ok else (False, "No valid text generated")
+
     else:
+        # PAD/EOS SAFETY FOR CAUSAL LMs 
+        try:
+            # Ensure a valid pad token exists
+            if tokenizer.pad_token_id is None:
+                if getattr(tokenizer, "eos_token", None) is not None:
+                    # Reuse EOS as PAD (common for LLaMA/Falcon/GPT-J families)
+                    tokenizer.pad_token = tokenizer.eos_token
+                else:
+                    # If no EOS either, add a dedicated [PAD] token
+                    tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+                    if hasattr(model, "resize_token_embeddings"):
+                        model.resize_token_embeddings(len(tokenizer))
+
+            # Keep model configs consistent to avoid "pad_token_id ignored" warnings
+            if getattr(model, "config", None) is not None:
+                model.config.pad_token_id = tokenizer.pad_token_id
+            if hasattr(model, "generation_config") and model.generation_config is not None:
+                model.generation_config.pad_token_id = tokenizer.pad_token_id
+        except Exception as e:
+            return False, f"PAD/EOS setup failed: {str(e)[:120]}"
+
+        # Now run a minimal deterministic generation
         generator = pipeline(
-            "text-generation", 
-            model=model, 
+            "text-generation",
+            model=model,
             tokenizer=tokenizer,
-            device=0 if torch.cuda.is_available() else -1
+            device=device_arg
         )
         prompt = TEST_CONFIG["causal_prompt"]
-    
-    
-    if model_type == "seq2seq":
-        result = generator(
+        out = generator(
             prompt,
-            max_new_tokens=20,
-            do_sample=False
-        )
-        if result and len(result) > 0 and result[0].get('generated_text', '').strip():
-            return True, f"Model type: {model_type}"
-        else:
-            return False, "No valid text generated"
-    else:
-        result = generator(
-            prompt,
-            max_new_tokens=20,
+            max_new_tokens=16,
             do_sample=False,
-            pad_token_id=tokenizer.eos_token_id if tokenizer.eos_token_id else 50256
+            pad_token_id=tokenizer.pad_token_id  # safe: guaranteed to exist above
         )
-        if result and len(result) > 0 and len(result[0]['generated_text']) > len(prompt):
-            return True, f"Model type: {model_type}"
-        else:
-            return False, "No valid text generated"
+        ok = bool(out and len(out[0].get("generated_text", "")) > len(prompt))
+        return (True, f"Model type: {model_type}") if ok else (False, "No valid text generated")
+
 
 def test_transformers_model(model_name, cache_dir):
     """Test a transformers model for text generation."""
@@ -249,7 +267,6 @@ def test_transformers_model(model_name, cache_dir):
             return "CUSTOM_CODE", "Contains custom code"
         else:
             return "FAIL", error_msg
-
 
 
 
@@ -284,7 +301,7 @@ def process_single_model(model_data, index, total, temp_folder, cursor, conn):
         if status == "OK":
             print("          OK")
         elif status == "OOM":
-            print("           OUT OF MEMORY")
+            print("          OUT OF MEMORY")
         elif status == "NOT_FOUND":
             print("          NOT FOUND")
         elif status == "GATED":
@@ -292,7 +309,7 @@ def process_single_model(model_data, index, total, temp_folder, cursor, conn):
         elif status == "CUSTOM_CODE":
             print("          CUSTOM CODE")
         else:
-            print(f"         {status}: {error[:50]}...")
+            print(f"          {status}: {error[:50]}...")
             
         return status
         
@@ -302,35 +319,12 @@ def process_single_model(model_data, index, total, temp_folder, cursor, conn):
         return "ERROR"
     
     finally:
-        cleanup_temp_folder(temp_folder)
         clear_gpu_memory()
         print()
 
-def process_batch(models, library_name, temp_folder, cursor, conn):
-    """Process a batch of models."""
-    stats = {
-        "OK": 0, "FAIL": 0, "OOM": 0, "NOT_FOUND": 0, 
-        "TRUST_NEEDED": 0, "GATED": 0, "CUSTOM_CODE": 0, 
-        "SKIPPED_TOO_BIG": 0, "ERROR": 0, "OTHER": 0
-    }
-    
-    for i, model_data in enumerate(models, 1):
-        status = process_single_model(model_data, i, len(models), temp_folder, cursor, conn)
-        
-        # Update stats
-        if status in stats:
-            stats[status] += 1
-        else:
-            stats["OTHER"] += 1
-    
-    # Print batch summary
-    print(f"\n{library_name} Summary (this batch):")
-    for status, count in stats.items():
-        if count > 0:
-            print(f"  {status}: {count} models")
 
-def get_next_batch(cursor, library_name):
-    """Get the next batch of models to test."""
+def get_models_to_test(cursor, library_name):
+    """Get all models that need testing."""
     query = """
         SELECT model_id, model_name, downloads, library
         FROM Models
@@ -339,42 +333,62 @@ def get_next_batch(cursor, library_name):
           AND library = ?
           AND downloads >= ?
         ORDER BY downloads DESC
-        LIMIT ?
     """
     cursor.execute(query, (
         TEST_CONFIG["problem"],
         library_name,
-        TEST_CONFIG["min_downloads"],
-        TEST_CONFIG["batch_size"]
+        TEST_CONFIG["min_downloads"]
     ))
     return cursor.fetchall()
 
+
 def test_models_for_library(library_name, temp_folder, cursor, conn):
     """Test all models for a specific library."""
-    batch_num = 1
-    total_tested = 0
-
-    while True:
-        models = get_next_batch(cursor, library_name)
+    
+    # Get all models at once
+    models = get_models_to_test(cursor, library_name)
+    
+    if not models:
+        print(f"\nNo {library_name} models to test")
+        return
+    
+    total = len(models)
+    print(f"\n{'='*60}")
+    print(f"Testing {library_name}: {total} models found")
+    print(f"{'='*60}\n")
+    
+    # Track statistics
+    stats = {
+        "OK": 0, "FAIL": 0, "OOM": 0, "NOT_FOUND": 0, 
+        "TRUST_NEEDED": 0, "GATED": 0, "CUSTOM_CODE": 0, 
+        "SKIPPED_TOO_BIG": 0, "ERROR": 0, "OTHER": 0
+    }
+    
+    # Process each model sequentially
+    for i, model_data in enumerate(models, 1):
+        status = process_single_model(model_data, i, total, temp_folder, cursor, conn)
         
-        if not models:
-            print(f"No more {library_name} models to test")
-            break
-
-        print(f"\n=== {library_name} - Batch {batch_num} ===")
-        process_batch(models, library_name, temp_folder, cursor, conn)
-
-        total_tested += len(models)
-        print(f"Completed {library_name} batch {batch_num}. Total tested so far: {total_tested}")
-        batch_num += 1
-
+        # Update stats
+        if status in stats:
+            stats[status] += 1
+        else:
+            stats["OTHER"] += 1
+    
+    # Print library summary
+    print(f"\n{'='*60}")
+    print(f"{library_name} - Final Summary")
+    print(f"{'='*60}")
+    for status, count in stats.items():
+        if count > 0:
+            print(f"  {status}: {count} models")
+    print()
 
 
 def print_overall_summary(cursor):
     """Print overall testing summary."""
-    print("\n" + "=" * 60)
+    print(f"\n{'='*60}")
     print("OVERALL SUMMARY")
-    print("=" * 60)
+    print(f"{'='*60}")
     
     cursor.execute("""
         SELECT health_status, COUNT(*) 
@@ -405,7 +419,7 @@ def print_overall_summary(cursor):
     untested = cursor.fetchone()[0]
     if untested > 0:
         print(f"  REMAINING: {untested} models to test")
-
+    print()
 
 
 def main():
@@ -417,13 +431,11 @@ def main():
     if HF_TOKEN:
         print("Using HuggingFace token for private repositories")
     else:
-        print("No HF token provided - private repositories will fail")
+        print("WARNING: No HF token - private repositories will fail")
     
     # Setup
     temp_folder = setup_workspace()
     conn, cursor = setup_database()
-    
-    print(f"Testing {TEST_CONFIG['libraries_to_test']} with {TEST_CONFIG['batch_size']} models per library")
     
     try:
         # Test each library
@@ -433,7 +445,7 @@ def main():
             except Exception as e:
                 print(f"Error testing {library}: {e}")
         
-        # Show summary
+        # Show overall summary
         print_overall_summary(cursor)
         
     except KeyboardInterrupt:
@@ -447,7 +459,8 @@ def main():
             shutil.rmtree(temp_folder, ignore_errors=True)
         except:
             pass
-        print("\nDone!")
+        print("Done!")
+
 
 if __name__ == "__main__":
     main()
