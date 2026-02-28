@@ -67,8 +67,6 @@ Defines all benchmark queries as a list of dictionaries. Queries are grouped int
 | 3 | Graph Traversal | T3_01, T3_03 – T3_05 |
 
 
-The module exports `ALL_QUERIES = TIER_1 + TIER_2 + TIER_3`.
-
 **Query index:**
 
 | ID | Name |
