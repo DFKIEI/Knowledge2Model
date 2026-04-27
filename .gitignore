@@ -177,6 +177,9 @@ cython_debug/
 # Text files
 *.txt
 
+# PDF files
+*.pdf
+
 # CUSTOM FOR THIS PROJECT
 .DS_Store
 ._.DS_Store
