@@ -10,22 +10,22 @@ This folder contains scripts that test and validate models from the HuggingFace 
 
 The HuggingFace database contains **50 total problem types**, but only **14 major problem types** account for ~29,160 models (~89% of all models). The remaining 36 problem types together contain only ~3,352 models and are **out of scope** for this testing effort. Health checks are run exclusively on the 14 major problem types below.
 
-| Problem Type | Total Models | Tested Models | Passed (OK) | Failed | Status |
-|---|---:|---:|---:|---:|---|
-| text-generation | 15,376 | 4,536 | 2,356 | 2,180 | Ongoing |
-| text-to-image | 3,571 | 3,481 | 1,028 | 2,453 | To be rerun (code fix needed) |
-| text-classification | 2,386 | 2,304 | 1,946 | 358 | Done |
-| feature-extraction | 2,136 | 2,036 | 1,129 | 907 | Done |
-| automatic-speech-recognition | 1,250 | 1,010 | 747 | 263 | Done |
-| image-classification | 966 | 895 | 755 | 140 | Done |
-| fill-mask | 929 | 929 | 802 | 127 | Done |
-| image-to-text | 871 | 834 | 379 | 455 | Done |
-| token-classification | 759 | 733 | 502 | 231 | Done |
-| summarization | 292 | 284 | 219 | 65 | Done |
-| image-to-image | 286 | 0 | — | — | To be Run |
-| object-detection | 278 | 0 | — | — | To be Run |
-| question-answering | 274 | 0 | — | — | To be Run |
-| image-segmentation | 186 | 0 | — | — | To be Run |
+| Problem Type | Total Models | Tested Models | Passed (OK) | Failed |
+|---|---:|---:|---:|---:|
+| text-generation | 15,376 | 4,536 | 2,356 | 2,180 |
+| text-to-image | 3,571 | 3,481 | 1,028 | 2,453 |
+| text-classification | 2,386 | 2,304 | 1,946 | 358 |
+| feature-extraction | 2,136 | 2,036 | 1,129 | 907 |
+| automatic-speech-recognition | 1,250 | 1,010 | 747 | 263 |
+| image-classification | 966 | 895 | 755 | 140 |
+| fill-mask | 929 | 929 | 802 | 127 |
+| image-to-text | 871 | 834 | 379 | 455 |
+| token-classification | 759 | 733 | 502 | 231 |
+| summarization | 292 | 284 | 219 | 65 |
+| image-to-image | 286 | 0 | — | — |
+| object-detection | 278 | 0 | — | — |
+| question-answering | 274 | 0 | — | — |
+| image-segmentation | 186 | 0 | — | — |
 
 > **Summary:** ~29,160 models across the 14 major problem types are in scope. The remaining ~3,352 models spread across 36 minor problem types are not being tested.
 
