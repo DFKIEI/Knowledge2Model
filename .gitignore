@@ -164,6 +164,16 @@ cython_debug/
 #.idea/
 
 
+# Word files
+*.doc
+*.docx
+*.docm
+*.dotx
+*.dotm
+~$*.doc
+~$*.docx
+~$*.docm
+
 # CUSTOM FOR THIS PROJECT
 .DS_Store
 ._.DS_Store
