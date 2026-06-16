@@ -73,7 +73,7 @@ def chatcompletion(model, messages, classify=False):
 
 # class LMStudioClient:
 
-def search_semantic(query, top_k=100): # Change top_k
+def search_semantic(query, top_k=20): # Change top_k
     """Performs semantic search on the Annoy index."""
     print("Search Semantic")
     query_embedding = sentence_model.encode([query], convert_to_tensor=True).cpu().detach().numpy()[0]

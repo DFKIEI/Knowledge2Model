@@ -18,10 +18,10 @@ cursor.execute("SELECT * FROM Models")
 rows = cursor.fetchall()
 
 # Load mappings
-with open("./Hugging2KG/modality_mapping.json", "r") as f:
+with open("../Hugging2KG/modality_mapping.json", "r") as f:
     modality_mapping = json.load(f)
 
-with open("./Hugging2KG/metric_mapping.json", "r") as f:
+with open("../Hugging2KG/metric_mapping.json", "r") as f:
     metric_mapping = json.load(f)
 
 def sanitize_string(value):
